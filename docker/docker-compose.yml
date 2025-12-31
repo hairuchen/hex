@@ -1,19 +1,19 @@
 services:
-  hex-backend-feature1:
+  hex-backend:
     build:
       context: ../  # 指向项目根目录
       dockerfile: Dockerfile
-    image: hex-backend-feature1:latest
-    container_name: hex-backend-feature1
+    image: hex-backend:latest
+    container_name: hex-backend
     ports:
       - "541:8080"
     networks:
-      - hex-network-feature1
+      - hex-network
     restart: always
     volumes:
-      - ./hex-backend-feature1/logs:/app/logs #日志持久化
+      - ./hex-backend/logs:/app/logs #日志持久化
 
 
 networks:
-  hex-network-feature1:
+  hex-network:
     driver: bridge
