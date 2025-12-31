@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="60 seconds" debug="false">
+
+    <!-- 日志文件存储路径（项目根目录下的logs文件夹） -->
+    <property name="LOG_FILE_PATH" value="logs"/>
+    <!-- 全量日志存储子目录（根路径下的all文件夹） -->
+    <property name="ALL_LOG_DIR" value="${LOG_FILE_PATH}/all"/>
+    <!-- 日志输出格式：时间 线程 级别 类名 - 消息 -->
+    <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"/>
+    <!-- 单个日志文件最大大小 -->
+    <property name="MAX_FILE_SIZE" value="10MB"/>
+    <!-- 日志保留天数 -->
+    <property name="MAX_HISTORY" value="30"/>
+
+    <!-- 控制台彩色日志格式（适配Windows/Linux终端） -->
+    <property name="CONSOLE_LOG_PATTERN" value="%yellow(%d{yyyy-MM-dd HH:mm:ss.SSS}) [%thread] %highlight(%-5level) %cyan(%logger{50}) - %msg%n"/>
+
+    <!-- 控制台输出Appender -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 采用RollingFileAppender实现按文件大小滚动生成日志文件 -->
+    <appender name="ALL_LOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- 滚动策略配置：按文件大小触发滚动，且遵循指定的文件名规则 -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!-- 最终滚动后的文件名：all{当前日期}.{索引}.log（例如：logs/all20251219.1.log） -->
+            <fileNamePattern>${ALL_LOG_DIR}/all%d{yyyyMMdd}.%i.log</fileNamePattern>
+            <!-- 单个日志文件最大大小（引用全局变量） -->
+            <maxFileSize>${MAX_FILE_SIZE}</maxFileSize>
+            <!-- 日志文件保留历史天数（引用全局变量） -->
+            <maxHistory>${MAX_HISTORY}</maxHistory>
+            <!-- 是否删除空的日志文件（建议开启） -->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+        <!-- 日志内容编码配置（与CONSOLE日志格式一致，仅去掉彩色标识） -->
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <!-- 使用基础LOG_PATTERN（无彩色），保证文件日志可读性 -->
+            <pattern>${LOG_PATTERN}</pattern>
+            <!-- 字符编码：统一使用UTF-8防止中文乱码 -->
+            <charset>UTF-8</charset>
+        </encoder>
+        <!-- 是否追加写入日志（默认true，建议显式配置） -->
+        <append>true</append>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ALL_LOG"/>
+    </root>
+
+
+</configuration>
