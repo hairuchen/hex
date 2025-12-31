@@ -4,12 +4,14 @@ services:
       context: ../  # 指向项目根目录
       dockerfile: Dockerfile
     image: hex-backend-alpha:latest
-    container_name: hex-backend
+    container_name: hex-backend-alpha
     ports:
       - "541:8080"
     networks:
       - hex-network-alpha
     restart: always
+    volumes:
+      - ./hex-backend-alpha/logs:/app/logs #日志持久化
 
 
 networks:
