@@ -1,17 +1,17 @@
 services:
-  hex-backend-feature1:
+  hex-backend-alpha:
     build:
       context: ../  # 指向项目根目录
       dockerfile: Dockerfile
-    image: hex-backend-feature1:latest
+    image: hex-backend-alpha:latest
     container_name: hex-backend
     ports:
       - "541:8080"
     networks:
-      - hex-network-feature1
+      - hex-network-alpha
     restart: always
 
 
 networks:
-  hex-network-feature1:
+  hex-network-alpha:
     driver: bridge
