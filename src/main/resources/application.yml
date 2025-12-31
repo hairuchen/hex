@@ -1,0 +1,7 @@
+project:
+  name: hex
+
+server:
+  port: 8080
+  servlet:
+    context-path: /${project.name}
