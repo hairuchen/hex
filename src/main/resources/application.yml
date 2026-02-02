@@ -5,3 +5,117 @@ server:
   port: 8080
   servlet:
     context-path: /${project.name}
+
+neo4j:
+  uri: bolt://192.168.1.198:7687
+  username: neo4j
+  password: yk12345678
+
+minio:
+  endpoint: http://localhost:9000
+  access-key: admin
+  secret-key: admin123456
+  bucket-name: knowledge-base
+
+dashscope:
+  embed:
+    api-key: your qwen API-Key
+    base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+
+spring:
+  rabbitmq:
+    host: 192.168.1.42
+    port: 5672
+    username: admin
+    password: admin123456
+    virtual-host: /
+    publisher-confirm-type: correlated # 开启发送确认
+    publisher-returns: true # 开启返回确认
+  # ========== PostgreSQL数据库核心配置 ==========
+  datasource:
+    # PostgreSQL驱动类（Spring Boot 3推荐用这个新版驱动类名）
+    driver-class-name: org.postgresql.Driver
+    # JDBC连接地址：localhost:5432是容器端口，knowledge_base是数据库名
+    # 关键参数说明：
+    # - useSSL=false：开发环境关闭SSL（生产环境建议开启）
+    # - serverTimezone=Asia/Shanghai：时区对齐，避免时间字段错误
+    # - allowPublicKeyRetrieval=true：兼容PostgreSQL的公钥检索
+    # - stringtype=unspecified：解决PostgreSQL的字符串类型适配问题
+    url: jdbc:postgresql://192.168.1.42:5432/knowledge_base?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&stringtype=unspecified
+    # 数据库账号（对应docker-compose中的POSTGRES_USER）
+    username: admin
+    # 数据库密码（对应docker-compose中的POSTGRES_PASSWORD）
+    password: admin123456
+    # HikariCP连接池配置（Spring Boot 3默认连接池，性能最优）
+    hikari:
+      # 连接池最大连接数（知识库项目建议10-20，根据并发调整）
+      maximum-pool-size: 15
+      # 最小空闲连接数
+      minimum-idle: 5
+      # 连接空闲超时时间（毫秒），300秒=5分钟
+      idle-timeout: 300000
+      # 连接最大存活时间（毫秒），1小时
+      max-lifetime: 3600000
+      # 连接超时时间（毫秒）
+      connection-timeout: 20000
+      # 测试连接是否可用的SQL（PostgreSQL专用）
+      connection-test-query: SELECT 1
+
+# ========== MyBatis-Plus专属配置 ==========
+mybatis-plus:
+  # 1. Mapper XML文件路径（若使用XML写SQL，需配置此路径）
+  # 示例：所有mapper目录下的.xml文件，适配maven的resources目录结构
+  mapper-locations: classpath:mapper/**/*.xml
+  # 2. 实体类包路径（自动扫描实体类，简化别名配置）
+  type-aliases-package: me.chr.hex.general.*
+  # 3. 全局配置
+  global-config:
+    db-config:
+      # 主键类型：适配PostgreSQL的UUID自动生成（对应之前的gen_random_uuid()）
+      id-type: ASSIGN_UUID
+      # 逻辑删除字段（可选，适配file/document表的status字段）
+      logic-delete-field: isDeleted
+      logic-delete-value: 0  # 逻辑删除值（0=删除）
+      logic-not-delete-value: 1  # 未删除值（1=正常）
+      # 表名前缀（可选，若实体类名和表名不一致时使用）
+      # table-prefix: t_
+  # 4. 执行器配置
+  configuration:
+    # 下划线转驼峰（必开！PostgreSQL表字段是下划线，实体类是驼峰）
+    map-underscore-to-camel-case: true
+    # 开启延迟加载
+    lazy-loading-enabled: true
+    # 开启二级缓存（可选，提升查询性能）
+    cache-enabled: false
+    # 打印SQL日志（开发环境开启，生产环境关闭）
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+generator:
+  author: chr
+  outputDir: src/main/java
+  dateType: ONLY_DATE
+  commentDate: yyyy-MM-dd
+  parentPackage: me.chr.hex
+  datadir: general
+  mapperXmlDir: src/main/resources/mapper/general
+  package:
+    parent: me.chr.hex
+    module: general
+  import:
+    base: me.chr.hex.base
+    response: me.chr.hex.core.R.Response
+    service: me.chr.hex.general.service
+    entity: me.chr.hex.general.entity
+
+
+# SpringDoc (Swagger) 配置
+springdoc:
+  api-docs:
+    path: /api-docs  # 接口文档 JSON 数据路径
+    version: OPENAPI_3_0
+  swagger-ui:
+    doc-expansion: full
+    path: /swagger-ui.html  # Swagger UI 访问路径（http://localhost:8080/hex/swagger-ui.html）
+    operationsSorter: method  # 接口排序方式（按 HTTP 方法排序：GET/POST/PUT/DELETE）
+  packages-to-scan: me.chr.hex.general.controller,me.chr.hex.extend.controller  # 扫描的 Controller 包路径（生成接口文档范围）
+

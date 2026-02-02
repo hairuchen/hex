@@ -14,6 +14,109 @@ services:
       - ./hex-backend-feature1/logs:/app/logs #日志持久化
 
 
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-06-13T11-33-47Z
+    command: ["server", "--console-address", ":9001", "/data"]
+    container_name: hex-minio-feature1
+    ports:
+      - "9000:9000"  # MinIO API端口
+      - "9001:9001"  # MinIO控制台端口
+    environment:
+      MINIO_ROOT_USER: admin        # 管理员账号（可自定义）
+      MINIO_ROOT_PASSWORD: admin123456  # 管理员密码（需8位以上，生产环境需强密码）
+      MINIO_DEFAULT_BUCKETS: knowledge-base  # 自动创建默认桶（知识库文件存储桶）
+    volumes:
+      - ./minio/minio_data:/data
+      - ./minio/minio_log:/var/log/minio
+    restart: always
+    networks:
+      - hex-network-feature1
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 10s
+      timeout: 10s
+      retries: 120
+      start_period: 30s
+
+
+  postgres:
+    image: postgres:16-alpine  # 轻量版Alpine镜像，稳定且体积小
+    container_name: hex-postgres-feature1
+    ports:
+      - "5432:5432"  # PostgreSQL默认端口
+    environment:
+      POSTGRES_USER: admin       # 数据库管理员账号
+      POSTGRES_PASSWORD: admin123456  # 密码（生产环境需强密码）
+      POSTGRES_DB: knowledge_base   # 自动创建的默认数据库（知识库专用）
+      TZ: Asia/Shanghai             # 时区配置，避免时间戳错误
+    volumes:
+      - ./postgres/data:/var/lib/postgresql/data  # 数据持久化
+      - ./postgres/init:/docker-entrypoint-initdb.d  # 初始化脚本目录（启动时自动执行）
+    restart: always
+    networks:
+      - hex-network-feature1
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U kb_admin -d knowledge_base" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  neo4j:
+    image: neo4j:5.23.0-community  # 社区版，稳定版本
+    container_name: hex-neo4j-feature1
+    ports:
+      - "7474:7474"  # Neo4j浏览器端口（可视化操作）
+      - "7687:7687"  # Bolt协议端口（Java客户端连接）
+    environment:
+      # 核心配置：开启认证、设置密码
+      NEO4J_AUTH: admin/admin123456  # 账号/密码：neo4j/kb_neo4j123456
+      # 内存配置：适配向量存储和图计算（根据服务器配置调整）
+      NEO4J_HEAP_MEMORY: 2G             # JVM堆内存
+      NEO4J_PAGE_CACHE_MEMORY: 1G       # 页面缓存内存
+      # 启用向量索引（Neo4j 5.x+支持，核心！用于余弦相似度计算）
+      NEO4J_PLUGINS: '["apoc", "vector"]'  # 安装APOC工具库+向量插件
+      # 允许跨域（开发环境）
+      NEO4J_server_http_cors__allowed_origin: "*"
+    volumes:
+      - ./neo4j/data:/data               # 数据持久化
+      - ./neo4j/logs:/logs               # 日志
+      - ./neo4j/plugins:/plugins         # 插件目录
+      - ./neo4j/import:/var/lib/neo4j/import  # 导入目录
+    restart: always
+    networks:
+      - hex-network-feature1
+    healthcheck:
+      test: [ "CMD-SHELL", "cypher-shell -u neo4j -p kb_neo4j123456 'MATCH (n) RETURN count(n) LIMIT 1'" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s  # Neo4j启动较慢，延长启动等待时间
+
+  rabbitmq:
+    image: rabbitmq:3.13-management  # 带web管理界面的镜像
+    container_name: hex-rabbitmq-feature1
+    restart: always  # 容器退出自动重启
+    networks:
+      - hex-network-feature1
+    ports:
+      - "5672:5672"    # RabbitMQ默认端口（程序连接）
+      - "15672:15672"  # Web管理界面端口（浏览器访问）
+    environment:
+      # 核心配置
+      RABBITMQ_DEFAULT_USER: admin        # 默认用户名（可自定义，如chr）
+      RABBITMQ_DEFAULT_PASS: admin123456        # 默认密码（可自定义，如123456）
+      RABBITMQ_DEFAULT_VHOST: /          # 默认虚拟主机
+      # 高级配置（可选，优化性能）
+      RABBITMQ_MEMORY_HIGH_WATERMARK: 1024MB  # 内存上限
+      RABBITMQ_DISK_FREE_LIMIT: 1GB          # 磁盘空闲下限
+    volumes:
+      - ./rabbitmq/rabbitmq-data:/var/lib/rabbitmq  # 持久化数据
+    healthcheck: # 健康检查（确保服务启动成功）
+      test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 networks:
   hex-network-feature1:
     driver: bridge

@@ -1,13 +1,17 @@
 package me.chr.hex;
 
+import org.mybatis.spring.annotation.MapperScan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableAsync;
 
 import java.io.PrintStream;
 
 @SpringBootApplication
+@MapperScan("me.chr.hex.general.mapper")
+@EnableAsync
 public class HexApplication {
 
     private static final Logger logger = LoggerFactory.getLogger(HexApplication.class);
