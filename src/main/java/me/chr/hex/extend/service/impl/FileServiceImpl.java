@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.text.SimpleDateFormat;
@@ -39,26 +40,30 @@ public class FileServiceImpl implements FileService {
         Date date=new Date();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
         String pathName="userID/"+sdf.format(date)+"/";
+        Boolean storageStatus = false;
+        FileEntity fileEntity = null;
         try {
-            // 1. 文件校验（调用接口）
+            // 文件校验（调用接口）
             fileValidator.validate(file);
             logger.info("文件校验通过，文件名：{}", file.getOriginalFilename());
 
-            // 2. 文件存储（调用接口）
-            Boolean storageStatus = fileStorage.store(file,pathName);
-            logger.info("文件存储成功，存储类型：{}，存储状态：{}", fileStorage.getStorageType(), storageStatus);
-
-            // 3. 数据持久化（调用接口）
-            FileEntity fileEntity = fileRepository.save(file, pathName,date,"chr");
+            // 数据持久化（调用接口）
+            fileEntity = fileRepository.save(file, pathName,date,"chr");
             logger.info("文件元数据持久化成功，FileID：{}", fileEntity.getId());
 
-            // 4. 发送消息（调用接口）
+            // 文件存储（调用接口）
+            storageStatus = fileStorage.store(file,fileEntity);
+            logger.info("文件存储成功，存储类型：{}，存储状态：{}", fileStorage.getStorageType(), storageStatus);
+
+            // 发送消息（调用接口）
             messageProducer.sendParseMessage(fileEntity);
             logger.info("待解析消息发送成功，MQ类型：{}", messageProducer.getMqType());
 
         } catch (Exception e) {
             logger.error("文件上传未知异常", e);
-            fileStorage.delete(pathName+file.getOriginalFilename());
+            if (fileEntity!=null && !storageStatus){
+                fileStorage.delete(pathName+fileEntity.getId());
+            }
             throw new BizException("文件上传失败：" + e.getMessage());
         }
     }

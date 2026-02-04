@@ -4,6 +4,7 @@ package me.chr.hex.extend.service.file.impl;
 import io.minio.*;
 import io.minio.errors.MinioException;
 import lombok.SneakyThrows;
+import me.chr.hex.extend.BO.FileEntity;
 import me.chr.hex.extend.properties.minio.MinioProperties;
 import me.chr.hex.extend.service.file.FileStorage;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,12 +26,9 @@ public class MinioStorage implements FileStorage {
 
     @SneakyThrows
     @Override
-    public Boolean store(MultipartFile file,String pathName)  {
+    public Boolean store(MultipartFile file, FileEntity fileEntity)  {
         // 1. 从配置对象获取参数，初始化 MinioClient
         MinioClient minioClient=this.getMinioClient();
-
-        // 2. 文件名与后缀
-        String originalFilename = file.getOriginalFilename();
 
         try {
             // 4. 检查桶是否存在，不存在则创建
@@ -41,7 +39,7 @@ public class MinioStorage implements FileStorage {
                 minioClient.putObject(
                         PutObjectArgs.builder()
                                 .bucket(minioProperties.getBucketName())
-                                .object(pathName+originalFilename)
+                                .object(fileEntity.getMinioObjectPath()+fileEntity.getId())
                                 .stream(inputStream, file.getSize(), -1) // -1 表示自动分片
                                 .contentType(file.getContentType()) // 保留原始 MIME 类型
                                 .build()

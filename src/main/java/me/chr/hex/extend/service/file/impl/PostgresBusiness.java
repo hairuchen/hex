@@ -12,6 +12,7 @@ import me.chr.hex.general.mapper.TFileMapper;
 import me.chr.hex.general.service.ITFileService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Date;
@@ -30,8 +31,9 @@ public class PostgresBusiness extends ServiceImpl<TFileMapper, TFile> implements
     private ITFileService fileService;
 
     @Override
+    @Transactional
     public FileEntity save(MultipartFile file, String pathName, Date date, String userId) {
-        FileEntity fileEntity=new FileEntity(file,minioProperties.getBucketName(),pathName+file.getOriginalFilename(),date,userId);
+        FileEntity fileEntity=new FileEntity(file,minioProperties.getBucketName(),pathName,date,userId);
         fileService.save(fileEntity);
         return fileEntity;
     }

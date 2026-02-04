@@ -6,10 +6,7 @@ server:
   servlet:
     context-path: /${project.name}
 
-neo4j:
-  uri: bolt://192.168.1.198:7687
-  username: neo4j
-  password: yk12345678
+
 
 minio:
   endpoint: http://localhost:9000
@@ -23,6 +20,11 @@ dashscope:
     base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
 
 spring:
+  neo4j:
+    uri: bolt://192.168.1.198:7687
+    authentication:
+      username: neo4j
+      password: yk12345678
   rabbitmq:
     host: 192.168.1.42
     port: 5672
