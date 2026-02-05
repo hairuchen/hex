@@ -6,7 +6,11 @@ server:
   servlet:
     context-path: /${project.name}
 
-
+knowledge:
+  retrieve:
+    text-weight: 0.4
+    vector-weight: 0.6
+    final-top-n: 10
 
 minio:
   endpoint: http://localhost:9000

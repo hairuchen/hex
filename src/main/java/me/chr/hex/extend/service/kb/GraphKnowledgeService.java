@@ -4,6 +4,7 @@ package me.chr.hex.extend.service.kb;
 import me.chr.hex.extend.DTO.RetrieveRequestDTO;
 import me.chr.hex.extend.VO.RetrieveResponseVO;
 import me.chr.hex.extend.properties.neo4j.KnowledgeChunkNode;
+import me.chr.hex.extend.properties.neo4j.VectorSearchResult;
 import org.neo4j.driver.types.Node;
 
 import java.util.List;
@@ -20,7 +21,7 @@ public interface GraphKnowledgeService {
     // 创建 NEXT_CHUNK 顺序关系
     void createNextChunkRelation(String fromChunkId, String toChunkId);
 
-    // ====================== 2. 多路召回（原子能力） ======================
+    // ====================== 2. 召回（原子能力） ======================
     /**
      * 全文检索（按原文分词匹配）
      */
@@ -28,7 +29,7 @@ public interface GraphKnowledgeService {
     /**
      * 向量余弦相似度召回
      */
-    List<KnowledgeChunkNode> retrieveByVector(List<Double> queryVector, Integer topN);
+    List<VectorSearchResult> retrieveByVector(List<Double> queryVector, Integer topN);
     /**
      * 查询当前节点的上一个节点（NEXT_CHUNK 反向）
      */
@@ -37,5 +38,8 @@ public interface GraphKnowledgeService {
      * 查询当前节点的下一个节点（NEXT_CHUNK 正向）
      */
     KnowledgeChunkNode findNextChunk(String chunkId);
+
+    // ====================== 2. 多路召回（复合能力） ======================
+    List<VectorSearchResult> multiPathRetrieve(String query,  Integer topN);
 
 }

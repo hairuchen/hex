@@ -2,6 +2,7 @@ package me.chr.hex.extend.mapper;
 
 
 import me.chr.hex.extend.properties.neo4j.KnowledgeChunkNode;
+import me.chr.hex.extend.properties.neo4j.VectorSearchResult;
 import org.springframework.data.neo4j.repository.Neo4jRepository;
 import org.springframework.data.neo4j.repository.query.Query;
 import org.springframework.data.repository.query.Param;
@@ -31,4 +32,17 @@ public interface KnowledgeChunkRepository extends Neo4jRepository<KnowledgeChunk
         CREATE (a)-[:NEXT_CHUNK {order: 1}]->(b)
         """)
     void createNextChunkRelation(@Param("fromId") String fromId, @Param("toId") String toId);
+
+
+    @Query("""
+    CALL db.index.vector.queryNodes('chunk_embedding_index', $topN, $queryVector)
+    YIELD node AS target_chunk, score
+    WHERE target_chunk.isDelete = false
+    RETURN target_chunk AS chunk, score
+    ORDER BY score DESC
+    """)
+    List<VectorSearchResult> findTopByVectorSimilarityWithScore(
+            @Param("queryVector") List<Double> queryVector,
+            @Param("topN") int topN
+    );
 }

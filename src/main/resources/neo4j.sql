@@ -38,3 +38,16 @@
 -- CREATE INDEX IF NOT EXISTS idx_document_chunk_type ON hex_t_document(chunk_type);
 -- COMMENT ON INDEX idx_document_chunk_type IS '按切片类型筛选的索引';
 --
+
+-- 1. 删除之前错误绑定到 TestChunk 的旧索引（避免冲突）
+DROP INDEX chunk_embedding_index IF EXISTS;
+
+-- 2. 创建正确的向量索引：绑定 KnowledgeChunk 节点的 embedding 属性，1024 维，余弦相似度
+CREATE VECTOR INDEX chunk_embedding_index
+FOR (c:KnowledgeChunk) ON (c.vector)
+OPTIONS {
+    indexConfig: {
+        `vector.dimensions`: 1024,
+        `vector.similarity_function`: 'COSINE'
+    }
+};
