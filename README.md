@@ -43,12 +43,21 @@ docker compose up -d
 
 # 项目详细介绍
 图数据库架构如图:
+
 ![img.png](img.png)
+
+其中Chunk(知识片段)后续称为Cnode,Entity(从Cnode原文抽象出的实体对象)后续称为Enode
+
+对Enode查询有以下函数关系:
+$$ f(\text{Enode}) = n\text{Cnode} $$
+对某种Enode间关系x存在：
+$$ f(\text{Rx}) => 2n\text{Enode} $$
 
 本项目多路召回依赖于权重配置，因此无需重排模型。
 相比于Ragflow,本服务没有切分方式等难以理解的概念，文件上传后会自动切分并按照上下文语义关联，无需关注于切分方式。
 
 知识结构类似于以下:
+
 ![img_1.png](img_1.png)
 
 🤝 贡献指南

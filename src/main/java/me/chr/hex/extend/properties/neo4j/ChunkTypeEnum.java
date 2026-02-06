@@ -13,10 +13,11 @@ import lombok.Getter;
  */
 @Getter
 public enum ChunkTypeEnum {
-    TEXT("TEXT" ),
+    TEXT("TEXT"),
+    entity("ENTITY"),
     IMAGE("IMAGE"),
     VOICE("VOICE"),
-    VIDEO("VIDEO"); // 预留扩展
+    VIDEO("VIDEO");
 
     private final String type;
 

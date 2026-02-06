@@ -11,6 +11,7 @@ import me.chr.hex.extend.service.file.FileStorage;
 import me.chr.hex.extend.service.file.MessageConsumer;
 import me.chr.hex.extend.service.file.MessageProducer;
 import me.chr.hex.extend.service.kb.GraphKnowledgeService;
+import me.chr.hex.extend.service.model.AbstractModel;
 import me.chr.hex.extend.service.model.EmbeddingModel;
 import me.chr.hex.general.entity.TFile;
 import org.slf4j.Logger;
@@ -20,17 +21,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @Author: CHR
  * @Date: create in 2026/2/3
  **/
 @Service
-public class RabbitmqProducer implements MessageProducer, MessageConsumer {
+public class Rabbitmq implements MessageProducer, MessageConsumer {
 
-    private static final Logger logger = LoggerFactory.getLogger(RabbitmqProducer.class);
+    private static final Logger logger = LoggerFactory.getLogger(Rabbitmq.class);
 
     @Autowired
     private RabbitTemplate rabbitTemplate;
@@ -42,6 +43,8 @@ public class RabbitmqProducer implements MessageProducer, MessageConsumer {
     private GraphKnowledgeService graphKnowledgeService;
     @Autowired
     private EmbeddingModel embeddingModel;
+    @Autowired
+    private AbstractModel abstractModel;
 
     @Override
     public void sendParseMessage(FileEntity fileEntity) throws Exception {
@@ -70,6 +73,7 @@ public class RabbitmqProducer implements MessageProducer, MessageConsumer {
             logger.info("【消费】从 MinIO 下载文件成功，大小：{} byte", fileBytes.length);
             // 3. 解析文件内容
             Boolean parseStatus = parseFile(fileBytes, fileEntity);
+
             logger.info("【消费】文件解析完成，fileId: {}", fileId);
 
         } catch (Exception e) {
@@ -100,7 +104,6 @@ public class RabbitmqProducer implements MessageProducer, MessageConsumer {
             if (chunk == null || chunk.isBlank()) continue;
 
             // 构建知识片段节点
-
             List<Double> vector=embeddingModel.embed(chunk);
             KnowledgeChunkNode node = new KnowledgeChunkNode(fileId,chunk.trim(), ChunkTypeEnum.TEXT,vector,"chr");
 
@@ -111,6 +114,9 @@ public class RabbitmqProducer implements MessageProducer, MessageConsumer {
             if (previousChunkId != null) {
                 graphKnowledgeService.createNextChunkRelation(previousChunkId, node.getId());
             }
+
+            //进一步抽象知识图谱
+//            Map<String, Object> entityAndRelationMaps = abstractModel.extractEntitiesAndRelations(node.getContent());
 
             previousChunkId = node.getId();
         }
