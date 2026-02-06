@@ -12,16 +12,16 @@ import lombok.Getter;
  * 知识片段类型枚举
  */
 @Getter
-public enum ChunkTypeEnum {
+public enum KnowledgeNodeTypeEnum {
     TEXT("TEXT"),
-    entity("ENTITY"),
+    ENTITY("ENTITY"),
     IMAGE("IMAGE"),
     VOICE("VOICE"),
     VIDEO("VIDEO");
 
     private final String type;
 
-    ChunkTypeEnum(String type) {
+    KnowledgeNodeTypeEnum(String type) {
         this.type=type;
     }
 

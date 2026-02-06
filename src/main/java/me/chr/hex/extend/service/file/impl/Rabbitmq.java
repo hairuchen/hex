@@ -2,9 +2,12 @@ package me.chr.hex.extend.service.file.impl;
 
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import me.chr.hex.extend.BO.AbstractEntityNode;
 import me.chr.hex.extend.BO.FileEntity;
-import me.chr.hex.extend.properties.neo4j.KnowledgeChunkNode;
-import me.chr.hex.extend.properties.neo4j.ChunkTypeEnum;
+import me.chr.hex.extend.BO.AbstractRelationEdge;
+import me.chr.hex.extend.properties.neo4j.ChunkNode;
+import me.chr.hex.extend.properties.neo4j.EntityNode;
+import me.chr.hex.extend.properties.neo4j.KnowledgeNodeTypeEnum;
 import me.chr.hex.extend.properties.rabbitmq.RabbitMqConfig;
 import me.chr.hex.extend.service.file.FileRepository;
 import me.chr.hex.extend.service.file.FileStorage;
@@ -12,6 +15,7 @@ import me.chr.hex.extend.service.file.MessageConsumer;
 import me.chr.hex.extend.service.file.MessageProducer;
 import me.chr.hex.extend.service.kb.GraphKnowledgeService;
 import me.chr.hex.extend.service.model.AbstractModel;
+import me.chr.hex.extend.service.model.AbstractObject;
 import me.chr.hex.extend.service.model.EmbeddingModel;
 import me.chr.hex.general.entity.TFile;
 import org.slf4j.Logger;
@@ -22,7 +26,6 @@ import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @Author: CHR
@@ -105,7 +108,7 @@ public class Rabbitmq implements MessageProducer, MessageConsumer {
 
             // 构建知识片段节点
             List<Double> vector=embeddingModel.embed(chunk);
-            KnowledgeChunkNode node = new KnowledgeChunkNode(fileId,chunk.trim(), ChunkTypeEnum.TEXT,vector,"chr");
+            ChunkNode node = new ChunkNode(fileId,chunk.trim(), KnowledgeNodeTypeEnum.TEXT,vector,"chr");
 
             // 保存到 Neo4j
             graphKnowledgeService.createChunk(node);
@@ -116,8 +119,18 @@ public class Rabbitmq implements MessageProducer, MessageConsumer {
             }
 
             //进一步抽象知识图谱
-//            Map<String, Object> entityAndRelationMaps = abstractModel.extractEntitiesAndRelations(node.getContent());
-
+            AbstractObject entityAndRelationMaps = abstractModel.extractEntitiesAndRelations(node.getContent());
+            List<AbstractEntityNode> eNodeList=entityAndRelationMaps.getENode();
+            for (AbstractEntityNode abstractEntityNode :eNodeList){
+                List<Double> entityVector=embeddingModel.embed(abstractEntityNode.getName());
+                EntityNode knowledgeEntityNode=new EntityNode(abstractEntityNode.getName(), KnowledgeNodeTypeEnum.ENTITY,entityVector,"chr");
+                graphKnowledgeService.createEntityNode(knowledgeEntityNode);
+                index++;
+                graphKnowledgeService.createChunkToEntityRelation(node.getId(), knowledgeEntityNode.getContent());
+                index++;
+            }
+//            List<AbstractRelationEdge> abstractRelationEdgeList =entityAndRelationMaps.getRx();
+            index++;
             previousChunkId = node.getId();
         }
 

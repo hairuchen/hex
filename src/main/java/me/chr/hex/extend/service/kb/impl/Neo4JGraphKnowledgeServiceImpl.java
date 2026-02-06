@@ -1,29 +1,20 @@
 package me.chr.hex.extend.service.kb.impl;
 
 
-import me.chr.hex.extend.DTO.RetrieveRequestDTO;
-import me.chr.hex.extend.VO.RetrieveResponseVO;
-import me.chr.hex.extend.controller.KnowledgeController;
 import me.chr.hex.extend.mapper.KnowledgeChunkRepository;
+import me.chr.hex.extend.mapper.KnowledgeEntityRepository;
 import me.chr.hex.extend.properties.kb.RetrieveWeightProperties;
-import me.chr.hex.extend.properties.neo4j.KnowledgeChunkNode;
+import me.chr.hex.extend.properties.neo4j.ChunkNode;
+import me.chr.hex.extend.properties.neo4j.EntityNode;
 import me.chr.hex.extend.properties.neo4j.VectorSearchResult;
 import me.chr.hex.extend.service.kb.GraphKnowledgeService;
 import me.chr.hex.extend.service.model.EmbeddingModel;
-import org.neo4j.driver.Driver;
-import org.neo4j.driver.Record;
-import org.neo4j.driver.Result;
-import org.neo4j.driver.Session;
-import org.neo4j.driver.Values;
-import org.neo4j.driver.types.Node;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @Author: CHR
@@ -37,12 +28,14 @@ public class Neo4JGraphKnowledgeServiceImpl implements GraphKnowledgeService {
     @Autowired
     private KnowledgeChunkRepository knowledgeChunkRepository;
     @Autowired
+    private KnowledgeEntityRepository knowledgeEntityRepository;
+    @Autowired
     private EmbeddingModel embeddingModel;
     @Autowired
     private RetrieveWeightProperties retrieveWeightProperties;
 
     @Override
-    public void createChunk(KnowledgeChunkNode node) {
+    public void createChunk(ChunkNode node) {
         knowledgeChunkRepository.save(node);
     }
 
@@ -57,7 +50,24 @@ public class Neo4JGraphKnowledgeServiceImpl implements GraphKnowledgeService {
     }
 
     @Override
-    public List<KnowledgeChunkNode> retrieveByTextMatch(String query, Integer topN) {
+    public void createEntityNode(EntityNode node) {
+        if(!knowledgeEntityRepository.existsByContent(node.getContent())){
+            knowledgeEntityRepository.save(node);
+        }
+    }
+
+    @Override
+    public void createChunkToEntityRelation(String chunkId, String entityContent) {
+        knowledgeChunkRepository.createChunkToEntityRelation(chunkId,entityContent);
+    }
+
+    @Override
+    public void createEntityRelation(String sourceEntityContent, String targetEntityContent, String relationType) {
+
+    }
+
+    @Override
+    public List<ChunkNode> retrieveByTextMatch(String query, Integer topN) {
         if (query == null || query.trim().isEmpty() || topN == null || topN <= 0) {
             return Collections.emptyList();
         }
@@ -86,19 +96,19 @@ public class Neo4JGraphKnowledgeServiceImpl implements GraphKnowledgeService {
     }
 
     @Override
-    public KnowledgeChunkNode findPreviousChunk(String chunkId) {
+    public ChunkNode findPreviousChunk(String chunkId) {
         return null;
     }
 
     @Override
-    public KnowledgeChunkNode findNextChunk(String chunkId) {
+    public ChunkNode findNextChunk(String chunkId) {
         return null;
     }
 
     @Override
     public List<VectorSearchResult> multiPathRetrieve(String query, Integer topN) {
         List<Double> vector=embeddingModel.embed(query);
-        List<KnowledgeChunkNode> textList=this.retrieveByTextMatch(query,topN*2);
+        List<ChunkNode> textList=this.retrieveByTextMatch(query,topN*2);
         List<VectorSearchResult> textResultList = textList.stream()
                 .map(VectorSearchResult::new)  // 用你新增的构造函数，自动设为1分
                 .toList();

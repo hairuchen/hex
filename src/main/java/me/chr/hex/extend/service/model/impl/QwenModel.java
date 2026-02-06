@@ -14,11 +14,13 @@ import com.alibaba.dashscope.exception.NoApiKeyException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import me.chr.hex.extend.service.model.AbstractModel;
+import me.chr.hex.extend.service.model.AbstractObject;
 import me.chr.hex.extend.service.model.EmbeddingModel;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -32,21 +34,24 @@ public class QwenModel implements EmbeddingModel, AbstractModel {
     @Value("${dashscope.embed.api-key}")
     private String apiKey;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Autowired
+    private AbstractObject abstractObject;
+
+    private final ObjectMapper objectMapper=new ObjectMapper();
 
     @Override
     public List<Double> embed(String text) {
         return this.getOneVector(text);
     }
 
-    private List<Double> getOneVector(String str){
+    private List<Double> getOneVector(String str) {
         try {
             // 构建请求参数
             TextEmbeddingParam param = TextEmbeddingParam
                     .builder()
                     .apiKey(apiKey)
                     .model("text-embedding-v4")  // 使用text-embedding-v4模型
-                    .texts(Arrays.asList(str))  // 输入文本
+                    .texts(Collections.singletonList(str))  // 输入文本
                     .parameter("dimension", 1024)  // 指定向量维度（仅 text-embedding-v3及 text-embedding-v4支持该参数）
                     .build();
 
@@ -63,7 +68,7 @@ public class QwenModel implements EmbeddingModel, AbstractModel {
     }
 
     // ===================== Qwen3-Max LLM 调用（提取实体与关系） =====================
-        private Map<String, Object> getEntityAndRelation(String chunkText) {
+    private Map<String, Object> getEntityAndRelation(String chunkText) {
         try {
             // 1. 构造 Prompt（强制返回 JSON）
             String prompt = "你是一个知识图谱构建专家，请从以下文本中提取实体、实体类型、实体间关系。\n" +
@@ -88,7 +93,7 @@ public class QwenModel implements EmbeddingModel, AbstractModel {
             GenerationParam param = GenerationParam.builder()
                     .apiKey(apiKey)
                     .model("qwen3-max") // 你要的 qwen3max
-                    .messages(Arrays.asList(message))
+                    .messages(Collections.singletonList(message))
                     .temperature(0.1F) // 低温度，保证结果稳定
                     .resultFormat("json") // 强制返回 JSON
                     .build();
@@ -97,10 +102,11 @@ public class QwenModel implements EmbeddingModel, AbstractModel {
             GenerationResult result = generation.call(param);
 
             // 4. 获取返回内容
-            String jsonStr = result.getOutput().getChoices().get(0).getMessage().getContent();
+            String jsonStr = result.getOutput().getChoices().getFirst().getMessage().getContent();
 
             // 5. 转为 Map（方便后续处理）
-            return objectMapper.readValue(jsonStr, new TypeReference<>() {});
+            return objectMapper.readValue(jsonStr, new TypeReference<>() {
+            });
 
         } catch (Exception e) {
             System.err.println("LLM 调用失败：" + e.getMessage());
@@ -109,7 +115,14 @@ public class QwenModel implements EmbeddingModel, AbstractModel {
     }
 
     @Override
-    public Map<String, Object> extractEntitiesAndRelations(String chunkText) {
-        return this.getEntityAndRelation(chunkText);
+    public AbstractObject extractEntitiesAndRelations(String chunkText) {
+        Map<String, Object> map=this.getEntityAndRelation(chunkText);
+        if (map == null) {
+            return abstractObject;
+        }
+        abstractObject.setENode(map);
+        abstractObject.setRx(map);
+
+        return abstractObject;
     }
 }

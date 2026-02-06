@@ -14,5 +14,5 @@ public interface AbstractModel {
      * @param chunkText 文本片段
      * @return 包含 entities、relations 的 Map
      */
-    Map<String, Object> extractEntitiesAndRelations(String chunkText);
+    AbstractObject extractEntitiesAndRelations(String chunkText);
 }

@@ -7,27 +7,21 @@ import org.springframework.data.neo4j.core.schema.Node;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 /**
  * @Author: CHR
- * @Date: create in 2026/2/4
+ * @Date: create in 2026/2/6
  **/
-@Node("KnowledgeChunk")
+@Node("EntityNode")
 @Data
-public class KnowledgeChunkNode {
+public class EntityNode {
     /**
      * 知识片段主键ID
      */
     @Id
     private String id;
-
-    /**
-     * 来源文件ID（关联file表的主键）
-     */
-    private String fileId;
 
     /**
      * 知识片段原文
@@ -64,18 +58,17 @@ public class KnowledgeChunkNode {
      */
     private Boolean isDelete;
 
-    public KnowledgeChunkNode(String fileId, String content, ChunkTypeEnum typeEnum, List<Double> vector, String creator){
+    public EntityNode(String content, KnowledgeNodeTypeEnum typeEnum, List<Double> vector, String creator){
         this.id= UUID.randomUUID().toString();
-        this.fileId=fileId;
         this.content=content;
         this.type=typeEnum.toString();
         this.vector=vector;
-        this.createTime=LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        this.createTime= LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         this.creator=creator;
         this.status="1";
         this.isDelete=Boolean.FALSE;
     }
 
-    public KnowledgeChunkNode() {
+    public EntityNode() {
     }
 }

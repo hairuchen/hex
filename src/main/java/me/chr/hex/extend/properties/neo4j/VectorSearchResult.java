@@ -2,7 +2,6 @@ package me.chr.hex.extend.properties.neo4j;
 
 
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 
 /**
  * @Author: CHR
@@ -11,16 +10,16 @@ import lombok.EqualsAndHashCode;
 @Data
 public class VectorSearchResult{
     // 知识块节点
-    private KnowledgeChunkNode chunk;
+    private ChunkNode chunk;
     private Double score;
 
     public VectorSearchResult() {
     }
-    public VectorSearchResult(KnowledgeChunkNode chunk, Double score) {
+    public VectorSearchResult(ChunkNode chunk, Double score) {
         this.chunk = chunk;
         this.score = score;
     }
-    public VectorSearchResult(KnowledgeChunkNode chunk){
+    public VectorSearchResult(ChunkNode chunk){
         this.chunk=chunk;
         this.score=1D;
     }
