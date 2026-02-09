@@ -75,6 +75,18 @@ public class ChunkNode {
         this.isDelete=Boolean.FALSE;
     }
 
+    public ChunkNode(String id,String fileId, String content, KnowledgeNodeTypeEnum typeEnum, List<Double> vector, String creator){
+        this.id= id;
+        this.fileId=fileId;
+        this.content=content;
+        this.type=typeEnum.toString();
+        this.vector=vector;
+        this.createTime=LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        this.creator=creator;
+        this.status="1";
+        this.isDelete=Boolean.FALSE;
+    }
+
     public ChunkNode() {
     }
 }

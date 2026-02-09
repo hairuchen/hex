@@ -56,13 +56,14 @@ public class FileServiceImpl implements FileService {
             logger.info("文件存储成功，存储类型：{}，存储状态：{}", fileStorage.getStorageType(), storageStatus);
 
             // 发送消息（调用接口）
-            messageProducer.sendParseMessage(fileEntity);
+            messageProducer.sendFileParseMessage(fileEntity);
             logger.info("待解析消息发送成功，MQ类型：{}", messageProducer.getMqType());
 
         } catch (Exception e) {
-            logger.error("文件上传未知异常", e);
+            logger.error("文件上传异常！");
             if (fileEntity!=null && !storageStatus){
                 fileStorage.delete(pathName+fileEntity.getId());
+                fileRepository.removeById(fileEntity.getId().toString());
             }
             throw new BizException("文件上传失败：" + e.getMessage());
         }

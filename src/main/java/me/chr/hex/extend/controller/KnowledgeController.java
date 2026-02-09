@@ -33,16 +33,4 @@ public class KnowledgeController {
         return Collections.singletonList(graphKnowledgeService.multiPathRetrieve(retrieveRequestDTO.getQuery(), retrieveRequestDTO.getTopN()));
     }
 
-//    @Autowired
-//    private AbstractModel abstractModel;
-//    @PostMapping("/test")
-//    @ResponseBody
-//    public AbstractObject test(@Validated @RequestBody RetrieveRequestDTO retrieveRequestDTO) {
-//        logger.info("test接口调用:"+retrieveRequestDTO.getQuery()+" top:"+retrieveRequestDTO.getTopN());
-//        AbstractObject entityAndRelationMaps = abstractModel.extractEntitiesAndRelations(retrieveRequestDTO.getQuery());
-//        List<EntityNode> eNodeList=entityAndRelationMaps.getENode();
-//        List<RelationEdge> relationEdgeList=entityAndRelationMaps.getRx();
-//        // 调用服务层进行检索
-//        return entityAndRelationMaps;
-//    }
 }

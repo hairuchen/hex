@@ -2,6 +2,7 @@ package me.chr.hex.extend.controller;
 
 import me.chr.hex.core.R.Response.CommonResult;
 import me.chr.hex.core.R.Response.ResultCode;
+import me.chr.hex.extend.properties.minio.ChunkMessage;
 import me.chr.hex.extend.properties.rabbitmq.RabbitMqConfig;
 import me.chr.hex.extend.service.file.MessageConsumer;
 import me.chr.hex.extend.service.FileService;
@@ -49,8 +50,18 @@ public class FileController {
      * 这是一个监听方法，不是对外开放的接口
      */
     @RabbitListener(queues = RabbitMqConfig.FILE_PARSE_QUEUE)
-    public void receiveMessage(String fileId) {
+    public void receiveFileMessage(String fileId) {
         // 只做一件事：调用业务层接口
-        messageConsumer.consumeParseMessage(fileId);
+        messageConsumer.consumeFileParseMessage(fileId);
+    }
+
+    /**
+     * 监听队列，实时消费
+     * 这是一个监听方法，不是对外开放的接口
+     */
+    @RabbitListener(queues = RabbitMqConfig.CHUNK_PARSE_QUEUE)
+    public void receiveChunkMessage(ChunkMessage chunk) {
+        // 只做一件事：调用业务层接口
+        messageConsumer.consumeChunkParseMessage(chunk);
     }
 }

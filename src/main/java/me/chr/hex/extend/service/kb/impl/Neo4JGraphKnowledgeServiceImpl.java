@@ -146,5 +146,9 @@ public class Neo4JGraphKnowledgeServiceImpl implements GraphKnowledgeService {
         return result;
     }
 
+    private List<VectorSearchResult> merge(){
+        return null;
+    }
+
 
 }

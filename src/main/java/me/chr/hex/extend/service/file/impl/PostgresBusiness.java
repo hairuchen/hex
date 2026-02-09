@@ -33,6 +33,7 @@ public class PostgresBusiness extends ServiceImpl<TFileMapper, TFile> implements
     @Override
     @Transactional
     public FileEntity save(MultipartFile file, String pathName, Date date, String userId) {
+        //TODO:增加文件类型
         FileEntity fileEntity=new FileEntity(file,minioProperties.getBucketName(),pathName,date,userId);
         fileService.save(fileEntity);
         return fileEntity;

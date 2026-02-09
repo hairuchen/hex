@@ -5,6 +5,9 @@ server:
   port: 8080
   servlet:
     context-path: /${project.name}
+  file:
+    parse:
+      type: vlm  #参数示例：视觉模型模式vlm;文本提取模式ocr
 
 knowledge:
   retrieve:
@@ -19,9 +22,8 @@ minio:
   bucket-name: knowledge-base
 
 dashscope:
-  embed:
-    api-key: your qwen API-Key
-    base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+  api-key: your qwen API-Key
+  base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
 
 spring:
   neo4j:
