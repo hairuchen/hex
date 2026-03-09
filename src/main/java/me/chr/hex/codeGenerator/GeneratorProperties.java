@@ -1,7 +1,7 @@
 package me.chr.hex.codeGenerator;
 
 import lombok.Data;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -9,32 +9,14 @@ import org.springframework.stereotype.Component;
  * @Author: CHR
  * @Date: create in 2025/9/22
  */
-@Component
 @Data
+@Slf4j
+@Component
 public class GeneratorProperties {
-    /* ---------- generator 前缀 ---------- */
-    @Value("${generator.author}")
-    private String author;
 
-    @Value("${generator.outputDir}")
-    private String outputDir;
-
-    @Value("${generator.dateType}")
-    private String dateType;
-
-    @Value("${generator.commentDate}")
-    private String commentDate;
-
-    @Value("${generator.parentPackage}")
-    private String parentPackage;
-
-    @Value("${generator.datadir}")
-    private String datadir;
-
-    @Value("${generator.mapperXmlDir}")
-    private String mapperXmlDir;
-
-    /* ---------- spring.datasource 前缀 ---------- */
+    @Value("${spring.application.name}")
+    private String name;
+    /* ---------- DataSourceConfig:spring.datasource 前缀 ---------- */
     @Value("${spring.datasource.url}")
     private String dbUrl;
 
@@ -44,41 +26,37 @@ public class GeneratorProperties {
     @Value("${spring.datasource.password}")
     private String dbPassword;
 
-    /* ---------- 内部类 ---------- */
-    @Autowired
-    private Project project;
-    @Autowired
-    private Package pkg;
-    @Autowired
-    private Import importCfg;
+    /* ---------- GlobalConfig:硬编码 ---------- */
+//    private String author;
 
-    @Data
-    @Component
-    public static class Project {
-        @Value("${project.name}")
-        private String name;
+    private String outputDir = "src/main/java";
+
+//    private String dateType;
+
+//    private String commentDate;
+
+    /* ---------- PackageConfig:构造&硬编码 ---------- */
+
+    private String parentPackage;
+
+    private String dataDir = "general";
+
+    private String mapperXmlDir = "src/main/resources/mapper/general";
+
+    /* ---------- 生成文件引用:硬编码 ---------- */
+    private String response;
+    private String service;
+    private String entity;
+
+
+    public GeneratorProperties() {
+        String currentPackage = this.getClass().getPackage().getName();
+        this.parentPackage = currentPackage.substring(0, currentPackage.lastIndexOf("."));
+
+        this.response = parentPackage + ".core.R.Response";
+        this.service = parentPackage + ".general.service";
+        this.entity = parentPackage + ".general.entity";
     }
 
-
-    @Data
-    @Component
-    public static class Package {
-        @Value("${generator.package.parent}")
-        private String parent;
-        @Value("${generator.package.parent}")
-        private String module;
-    }
-
-    @Data
-    @Component
-    public static class Import {
-        @Value("${generator.import.base}")
-        private String base;
-        @Value("${generator.import.response}")
-        private String response;
-        @Value("${generator.import.service}")
-        private String service;
-        @Value("${generator.import.entity}")
-        private String entity;
-    }
 }
+

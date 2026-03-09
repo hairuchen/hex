@@ -10,12 +10,15 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
+import lombok.ToString;
+import me.chr.hex.core.log.Loggable;
 
 /**
  * 知识召回请求 DTO
  */
 @Data
-public class RetrieveRequestDTO {
+@ToString
+public class RetrieveRequestDTO implements Loggable {
 
     /**
      * 用户查询文本（必填）

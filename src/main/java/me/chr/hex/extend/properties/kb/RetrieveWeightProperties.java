@@ -21,6 +21,6 @@ public class RetrieveWeightProperties {
     private Double textWeight = 0.3;
     // 向量匹配权重
     private Double vectorWeight = 0.7;
-    // 最终返回topN
+    // 最终返回 topN
     private Integer finalTopN = 10;
 }

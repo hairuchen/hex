@@ -1,6 +1,7 @@
 package me.chr.hex.core.R.Response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -21,6 +22,9 @@ public class CommonResult<T> implements Serializable {
     @Schema(description  = "响应数据", requiredMode = Schema.RequiredMode.REQUIRED)
     private T data;
 
+    @Schema(description  = "响应时间", requiredMode = Schema.RequiredMode.REQUIRED)
+    private String costTime;
+
     public CommonResult(Integer code, String msg, T data) {
         this.code = code;
         this.msg = msg;
@@ -33,6 +37,10 @@ public class CommonResult<T> implements Serializable {
 
     public static <T> CommonResult<T> success(T data) {
         return new CommonResult<>(ResultCode.SUCCESS.getCode(), ResultCode.SUCCESS.getMessage(), data);
+    }
+
+    public static <T> CommonResult<T> success(String message,T data) {
+        return new CommonResult<>(ResultCode.SUCCESS.getCode(),message, data);
     }
 
     public static <T> CommonResult<T> failure() {

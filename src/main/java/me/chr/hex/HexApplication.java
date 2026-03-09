@@ -1,9 +1,8 @@
 package me.chr.hex;
 
-import me.chr.hex.extend.service.file.FileParse;
+import lombok.extern.slf4j.Slf4j;
+import me.chr.hex.extend.service.FileParse;
 import org.mybatis.spring.annotation.MapperScan;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -15,12 +14,11 @@ import java.io.PrintStream;
 @SpringBootApplication
 @MapperScan("me.chr.hex.general.mapper")
 @EnableAsync
+@Slf4j
 public class HexApplication {
 
     @Autowired
     private static FileParse fileParse;
-
-    private static final Logger logger = LoggerFactory.getLogger(HexApplication.class);
 
     public static void main(String[] args) {
         System.setOut(createMyPrintStream(System.out));
@@ -31,10 +29,10 @@ public class HexApplication {
         FileParse fileParse = context.getBean(FileParse.class);
 
         // 3. 打印解析器信息
-        logger.info("========================================");
-        logger.info("✅ 当前启用的文件解析器类型：{}", fileParse.getType());
-        logger.info("✅ 解析器具体实现类：{}", fileParse.getClass().getCanonicalName());
-        logger.info("========================================");
+        log.info("========================================");
+        log.info("✅ 当前启用的文件解析器类型：{}", fileParse.getType());
+        log.info("✅ 解析器具体实现类：{}", fileParse.getClass().getCanonicalName());
+        log.info("========================================");
     }
 
     /**
@@ -45,10 +43,10 @@ public class HexApplication {
     public static PrintStream createMyPrintStream(final PrintStream SysPrintStream) {
         return new PrintStream(SysPrintStream) {
             public void print(final String string) {
-                logger.info(string);
+                log.info(string);
             }
             public void println(final String string) {
-                logger.info(string);
+                log.info(string);
             }
         };
     }

@@ -1,17 +1,24 @@
 package me.chr.hex.core.R.Response;
 
-import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.MessageSourceResolvable;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 //import org.springframework.security.access.AccessDeniedException;
 //import org.springframework.security.authentication.BadCredentialsException;
 //import org.springframework.security.authentication.DisabledException;
 //import org.springframework.security.authentication.LockedException;
+import org.springframework.validation.method.ParameterValidationResult;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.exc.InvalidFormatException;
+import tools.jackson.databind.exc.ValueInstantiationException;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 
@@ -93,50 +100,107 @@ public class GlobalExceptionHandler {
         return CommonResult.failure(ResultCode.VALIDATE_FAILED, "参数校验失败：" + errorMsg);
     }
 
+    /**
+     *  处理 @Valid 的参数校验异常
+     */
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public CommonResult<String> handleHandlerMethodValidationException(HandlerMethodValidationException e) {
+        List<ParameterValidationResult> results = e.getParameterValidationResults();
+        List<String> errorMessages = new ArrayList<>();
+        for (ParameterValidationResult result : results) {
+            // 遍历该参数下的所有具体错误
+            errorMessages.add("第"+result.getContainerIndex()+"组数据:");
+            for (MessageSourceResolvable error : result.getResolvableErrors()) {
+                // 获取默认消息 (通常包含 "field: message" 或 "message")
+                String defaultMessage = error.getDefaultMessage();
+                if (defaultMessage != null && !defaultMessage.isEmpty()) {
+                    errorMessages.add(defaultMessage);
+                }
+            }
+        }
+
+        // 如果上面没拿到，兜底使用 Spring 自带的格式化（可能会带 and）
+        StringBuilder finalMsg = new StringBuilder();
+        if (errorMessages.isEmpty()) {
+            Object[] args = e.getDetailMessageArguments();
+            finalMsg = new StringBuilder((args != null && args.length > 0) ? args[0].toString() : "参数校验失败");
+        } else {
+            // 用分号拼接： "id: xxx; id: yyy"
+            for(String str:errorMessages){
+                if (str.contains("组数据")&&str.contains(errorMessages.get(0).toString())){
+                    finalMsg.append(str);
+                }else if (str.contains("组数据")){
+                    finalMsg.append(";").append(str);
+                }else{
+                    finalMsg.append(str).append(",");
+                }
+            }
+        }
+
+        log.warn(">>> 参数校验异常：{}", finalMsg);
+        return CommonResult.failure(ResultCode.VALIDATE_FAILED, finalMsg.toString());
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public CommonResult<String> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
-        // 1. 提取嵌套的 InvalidFormatException
         Throwable cause = e.getCause();
-        if (cause instanceof InvalidFormatException) {
-            InvalidFormatException invalidFormatException = (InvalidFormatException) cause;
-            // 2. 复用原有枚举异常处理逻辑
-            String invalidValue = invalidFormatException.getValue() == null ? "null" : invalidFormatException.getValue().toString();
-            // 修复：getPath() 可能为空，兼容处理；get(0) 替换为 getFirst()（或保持 get(0)，两者功能一致）
-            String fieldName = invalidFormatException.getPath().isEmpty()
-                    ? "未知字段"
-                    : invalidFormatException.getPath().get(0).getFieldName();
-            Class<?> targetClass = invalidFormatException.getTargetType();
-            String errorMsg;
+        String invalidValue = "未知";
+        String fieldName = "未知字段";
+        Class<?> targetClass = null;
+        List<JacksonException.Reference> path = null;
 
-            // 3. 判断是否为枚举类型，拼接友好提示
-            if (targetClass != null && targetClass.isEnum()) {
-                Enum<?>[] enumConstants = (Enum<?>[]) targetClass.getEnumConstants();
-                String validEnumList = Arrays.stream(enumConstants)
-                        .map(Enum::toString)
-                        .collect(Collectors.joining("、"));
-                errorMsg = String.format("字段【%s】传入无效枚举值【%s】，支持的有效枚举为：[%s]",
-                        fieldName, invalidValue, validEnumList);
-            } else {
-                errorMsg = String.format("字段【%s】传入无效值【%s】，请检查参数类型", fieldName, invalidValue);
+        // 情况 1: 普通枚举匹配失败 (无 @JsonCreator)
+        if (cause instanceof tools.jackson.databind.exc.InvalidFormatException ife) {
+            invalidValue = ife.getValue() == null ? "null" : ife.getValue().toString();
+            fieldName = ife.getPath().isEmpty() ? "未知字段" : ife.getPath().get(0).getPropertyName();
+            targetClass = ife.getTargetType();
+            path = ife.getPath();
+        }
+        // 情况 2: @JsonCreator 工厂方法执行失败 (有 @JsonCreator) -> 新增分支
+        else if (cause instanceof ValueInstantiationException vie) {
+            targetClass = vie.getType().getRawClass();
+            path = vie.getPath();
+            fieldName = (path != null && !path.isEmpty()) ? path.get(0).getPropertyName() : "未知字段";
+
+            // 从异常消息或 Cause 中提取值
+            Throwable rootCause = vie.getCause();
+            if (rootCause != null && rootCause.getMessage() != null) {
+                String msg = rootCause.getMessage();
+                if (msg.contains("No enum constant")) {
+                    // 提取 PRODUCT_NAME1
+                    String[] parts = msg.split("\\.");
+                    invalidValue = parts[parts.length - 1].trim();
+                } else {
+                    invalidValue = msg; // 自定义消息
+                }
             }
+        }
 
-            log.warn(">>> 枚举反序列化异常（JSON解析失败）：{}", errorMsg);
+        // 如果成功提取了枚举类型，则生成友好提示
+        if (targetClass != null && targetClass.isEnum()) {
+            Enum<?>[] enumConstants = (Enum<?>[]) targetClass.getEnumConstants();
+            String validEnumList = Arrays.stream(enumConstants)
+                    .map(Enum::toString)
+                    .collect(Collectors.joining("、"));
+
+            String errorMsg = String.format("字段【%s】传入无效枚举值【%s】，支持的有效枚举为：[%s]",
+                    fieldName, invalidValue, validEnumList);
+
+            log.warn(">>> 枚举反序列化异常：{}", errorMsg);
             return CommonResult.failure(ResultCode.VALIDATE_FAILED, errorMsg);
         }
 
-        // 非 InvalidFormatException 导致的 JSON 解析失败，返回默认提示
-        String defaultMsg = "JSON 格式错误或参数类型不匹配，请检查请求参数";
-        log.warn(">>> JSON 解析异常：{}", defaultMsg, e);
-        return CommonResult.failure(ResultCode.VALIDATE_FAILED, defaultMsg);
+        // 兜底
+        return CommonResult.failure(ResultCode.VALIDATE_FAILED, "JSON 格式错误或参数类型不匹配");
     }
 
     /**
      * 保留原有的 InvalidFormatException 处理（防止直接抛出该异常时未被拦截）
      */
-    @ExceptionHandler(InvalidFormatException.class)
+    @ExceptionHandler(tools.jackson.databind.exc.InvalidFormatException.class)
     public CommonResult<String> handleEnumInvalidFormatException(InvalidFormatException e) {
         String invalidValue = e.getValue() == null ? "null" : e.getValue().toString();
-        String fieldName = e.getPath().isEmpty() ? "未知字段" : e.getPath().get(0).getFieldName();
+        String fieldName = e.getPath().isEmpty() ? "未知字段" : e.getPath().get(0).getPropertyName();
         Class<?> targetClass = e.getTargetType();
         String errorMsg;
 

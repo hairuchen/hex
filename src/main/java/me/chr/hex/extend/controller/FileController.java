@@ -1,67 +1,41 @@
 package me.chr.hex.extend.controller;
 
+import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import me.chr.hex.core.R.Response.CommonResult;
-import me.chr.hex.core.R.Response.ResultCode;
-import me.chr.hex.extend.properties.minio.ChunkMessage;
-import me.chr.hex.extend.properties.rabbitmq.RabbitMqConfig;
-import me.chr.hex.extend.service.file.MessageConsumer;
-import me.chr.hex.extend.service.FileService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import me.chr.hex.extend.BO.FileEntity;
+import me.chr.hex.extend.DTO.FileUploadDTO;
 
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import me.chr.hex.extend.service.MessageProducer;
+import me.chr.hex.general.entity.File;
+import me.chr.hex.general.service.IFileService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 /**
  * @Author: CHR
  * @Date: create in 2026/1/29
  **/
+@Slf4j
 @RestController
 @RequestMapping("/file")
 public class FileController {
 
-    private static final Logger logger = LoggerFactory.getLogger(FileController.class);
+    @Autowired
+    private IFileService fileService;
 
     @Autowired
-    private FileService fileService;
-
-    @Autowired
-    private MessageConsumer messageConsumer;
-
+    private MessageProducer messageProducer;
 
     @PostMapping("/upload")
-    @ResponseBody
-    public CommonResult<String> uploadFile(@RequestParam("file") MultipartFile file) {
-        if (file.isEmpty()) {
-            return CommonResult.failure(ResultCode.FAILED,"文件为空");
+    public CommonResult<FileEntity> uploadFile(@RequestBody @Valid FileUploadDTO fileUploadDTO) {
+        FileEntity fileEntity=fileService.uploadFile(fileUploadDTO);
+        // 发送消息（调用接口）
+        if (fileUploadDTO.getIsParse()!=null&& fileUploadDTO.getIsParse()){
+            messageProducer.sendFileParseMessage(fileEntity);
+            return CommonResult.success("文件已提交，正在后台解析处理...",fileEntity);
         }
 
-        fileService.uploadFile(file);
-
-        return CommonResult.success("文件已提交，正在后台处理...");
-
-    }
-
-
-    /**
-     * 监听队列，实时消费
-     * 这是一个监听方法，不是对外开放的接口
-     */
-    @RabbitListener(queues = RabbitMqConfig.FILE_PARSE_QUEUE)
-    public void receiveFileMessage(String fileId) {
-        // 只做一件事：调用业务层接口
-        messageConsumer.consumeFileParseMessage(fileId);
-    }
-
-    /**
-     * 监听队列，实时消费
-     * 这是一个监听方法，不是对外开放的接口
-     */
-    @RabbitListener(queues = RabbitMqConfig.CHUNK_PARSE_QUEUE)
-    public void receiveChunkMessage(ChunkMessage chunk) {
-        // 只做一件事：调用业务层接口
-        messageConsumer.consumeChunkParseMessage(chunk);
+        return CommonResult.success(fileEntity);
     }
 }

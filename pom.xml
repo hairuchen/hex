@@ -33,16 +33,16 @@
         <spring-ai.version>1.0.2</spring-ai.version>
 	</properties>
 	<dependencies>
-		<!--spring boot & springWeb-->
+		<!-- spring boot & springWeb & Logback -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
             <version>${spring-boot.version}</version>
 		</dependency>
-		<!--Logback-->
+		<!-- AOP -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-logging</artifactId>
+			<artifactId>spring-boot-starter-aspectj</artifactId>
 			<version>${spring-boot.version}</version>
 		</dependency>
 		<!--swagger插件-->
@@ -101,7 +101,8 @@
 			<artifactId>postgresql</artifactId>
 			<version>42.7.3</version>
 		</dependency>
-		<!--(已废弃)neo4j jdbc方式-->
+		<!-- neo4j -->
+			<!-- (已废弃)jdbc方式 -->
 <!--		<dependency>-->
 <!--			<groupId>org.neo4j.driver</groupId>-->
 <!--			<artifactId>neo4j-java-driver</artifactId>-->

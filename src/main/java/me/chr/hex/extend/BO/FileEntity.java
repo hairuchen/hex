@@ -1,32 +1,34 @@
 package me.chr.hex.extend.BO;
 
 
-import me.chr.hex.general.entity.TFile;
-import org.springframework.web.multipart.MultipartFile;
+import me.chr.hex.general.entity.File;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
  * @Author: CHR
  * @Date: create in 2026/2/3
  **/
-public class FileEntity extends TFile {
+public class FileEntity extends File {
 
     public FileEntity(){
-        this.setId(UUID.randomUUID());
+        this.setId(UUID.randomUUID().toString());
     }
 
-    public FileEntity(MultipartFile file, String bucketName,String minioPath, Date date, String userId){
+    public FileEntity(String fileName,Long fileSize, String bucketName,String objectName,String minioPath,String userId,Boolean isExcavate){
         this();
-        this.setFileName(file.getOriginalFilename());
-        this.setFileSize(file.getSize());
-        this.setMinioObjectPath(minioPath);
-        this.setMinioBucket(bucketName);
+        this.setFileName(fileName);
+        this.setFileSize(fileSize);
 
-        this.setUploadTime(date);
+        this.setMinioBucket(bucketName);
+        this.setMinioObjectName(objectName);
+        this.setMinioImgPath(minioPath);
+
+        this.setUploadTime(LocalDateTime.now());
         this.setUploadUser(userId);
 
         this.setProcessProgress((short) 0);
+        this.setIsExcavate(isExcavate);
     }
 }

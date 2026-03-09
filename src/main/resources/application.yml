@@ -1,10 +1,7 @@
-project:
-  name: hex
-
 server:
   port: 8080
   servlet:
-    context-path: /${project.name}
+    context-path: /${spring.application.name}
   file:
     parse:
       type: vlm  #参数示例：视觉模型模式vlm;文本提取模式ocr
@@ -26,6 +23,18 @@ dashscope:
   base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
 
 spring:
+  application:
+    name: hex
+  servlet:
+    multipart:
+      # 单个文件的最大大小（核心配置，解决你的报错）
+      max-file-size: 10MB
+      # 单次请求的总文件大小（多文件上传时生效）
+      max-request-size: 50MB
+      # 可选：文件写入磁盘的阈值，小于该值暂存内存，大于则写入临时文件
+      file-size-threshold: 2MB
+      # 可选：是否启用文件上传功能（默认true）
+      enabled: true
   neo4j:
     uri: bolt://192.168.1.198:7687
     authentication:
@@ -97,6 +106,7 @@ mybatis-plus:
     cache-enabled: false
     # 打印SQL日志（开发环境开启，生产环境关闭）
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+#    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
 
 generator:
   author: chr

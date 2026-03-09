@@ -65,8 +65,8 @@ public class RabbitMqConfig {
     @Bean
     public Binding bindingChunkParseQueue() {
         return BindingBuilder
-                .bind(fileParseQueue())
-                .to(fileExchange())
+                .bind(chunkParseQueue())
+                .to(chunkExchange())
                 .with(CHUNK_PARSE_ROUTING_KEY);
     }
 }

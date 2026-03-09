@@ -29,9 +29,9 @@ public class SpringDocConfig {
                 .components(components)
                 // 可选：添加文档信息（标题、描述等）
                 .info(new io.swagger.v3.oas.models.info.Info()
-                        .title(environment.getProperty("project.name")+"接口文档")
+                        .title(environment.getProperty("spring.application.name")+"接口文档")
                         .description("API接口文档")
-                        .version(environment.getProperty("project.version")));
+                        .version("1.0.0"));
     }
 
 }
