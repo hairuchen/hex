@@ -47,7 +47,8 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, File> implements IF
 
             return fileEntity;
         } catch (Exception e) {
-            throw new BizException("文件上传失败：" + e.getMessage());
+            log.error("文件上传失败!\n"+e);
+            throw new BizException("文件上传失败!");
         }
     }
 

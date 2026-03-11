@@ -45,7 +45,8 @@ public class Neo4JGraphKnowledgeServiceImpl implements GraphKnowledgeService {
             }
             return retrieveResponseVOList;
         } catch (Exception e) {
-            throw new BizException("文本匹配失败: query="+query+", topN="+topN+e);
+            log.error("文本匹配失败: query="+query+", topN="+topN+"\n"+e);
+            throw new BizException("文本匹配失败: query="+query+", topN="+topN);
         }
     }
 
@@ -55,7 +56,8 @@ public class Neo4JGraphKnowledgeServiceImpl implements GraphKnowledgeService {
             List<Double> queryVector=embeddingModel.embed(query);
             return chunkNodeMapper.findTopByVectorSimilarityWithScore(queryVector, topN);
         } catch (Exception e) {
-            throw new BizException("向量检索失败: query="+query+", topN="+topN+e);
+            log.error("向量检索失败: query="+query+", topN="+topN+"\n"+e);
+            throw new BizException("向量检索失败: query="+query+", topN="+topN);
         }
     }
 

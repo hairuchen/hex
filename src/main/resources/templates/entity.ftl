@@ -11,6 +11,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Data;
 import java.io.Serial;
 import lombok.ToString;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
 
 /**
@@ -22,8 +24,10 @@ import lombok.ToString;
  * @since ${date}
  */
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 @ToString
-@TableName("${table.name}")
+@TableName("\"${table.name}\"")
 @Schema(name = "${entity}", description = "${table.comment!}")
 @JsonPropertyOrder({
 <#list table.fields as field>

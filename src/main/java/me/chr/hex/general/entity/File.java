@@ -11,6 +11,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Data;
 import java.io.Serial;
 import lombok.ToString;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
 
 /**
@@ -19,11 +21,13 @@ import lombok.ToString;
  * </p>
  *
  * @author baomidou
- * @since 2026-03-10
+ * @since 2026-03-12
  */
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 @ToString
-@TableName("file")
+@TableName("\"file\"")
 @Schema(name = "File", description = "文件元数据表（存储文件基础信息+处理状态）")
 @JsonPropertyOrder({
     "id", 

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="me.chr.hex.general.mapper.DepartmentMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="me.chr.hex.general.entity.Department">
+        <id column="id" property="id" />
+        <result column="dept_name" property="deptName" />
+        <result column="status" property="status" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="is_deleted" property="isDeleted" />
+        <result column="version" property="version" />
+        <result column="parent_id" property="parentId" />
+        <result column="remark" property="remark" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, dept_name, status, create_time, update_time, is_deleted, version, parent_id, remark
+    </sql>
+
+</mapper>

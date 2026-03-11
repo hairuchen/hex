@@ -12,7 +12,6 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import java.io.PrintStream;
 
 @SpringBootApplication
-@MapperScan("me.chr.hex.general.mapper")
 @EnableAsync
 @Slf4j
 public class HexApplication {

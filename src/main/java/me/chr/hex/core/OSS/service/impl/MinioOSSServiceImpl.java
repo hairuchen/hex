@@ -80,7 +80,8 @@ public class MinioOSSServiceImpl implements OssService {
         } catch (ErrorResponseException | ServerException | InsufficientDataException | IOException |
                  NoSuchAlgorithmException | InvalidKeyException | InvalidResponseException | XmlParserException |
                  InternalException e) {
-            throw new BizException("文件上传到 "+this.getOssType()+" 失败：" + e.getMessage());
+            log.error("文件上传到 "+this.getOssType()+" 失败!\n"+e);
+            throw new BizException("文件上传到 "+this.getOssType()+" 失败!");
         }
     }
 

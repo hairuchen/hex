@@ -35,6 +35,15 @@ spring:
       file-size-threshold: 2MB
       # 可选：是否启用文件上传功能（默认true）
       enabled: true
+  security:
+    permit: /login
+    oauth2:
+      resourceserver:
+        jwt:
+          # 核心：配置 RSA 公钥地址
+          public-key: ${jwt.public-key}
+          # 可选：JWT 签发者（和生成 Token 时的 issuer 一致）
+          issuer-uri: ${jwt.issuer}
   neo4j:
     uri: bolt://192.168.1.198:7687
     authentication:
@@ -92,8 +101,8 @@ mybatis-plus:
       id-type: ASSIGN_UUID
       # 逻辑删除字段（可选，适配file/document表的status字段）
       logic-delete-field: isDeleted
-      logic-delete-value: 0  # 逻辑删除值（0=删除）
-      logic-not-delete-value: 1  # 未删除值（1=正常）
+      logic-delete-value: 1  # 逻辑删除值（1=删除）
+      logic-not-delete-value: 0  # 未删除值（0=正常）
       # 表名前缀（可选，若实体类名和表名不一致时使用）
       # table-prefix: t_
   # 4. 执行器配置
@@ -137,3 +146,15 @@ springdoc:
     operationsSorter: method  # 接口排序方式（按 HTTP 方法排序：GET/POST/PUT/DELETE）
   packages-to-scan: me.chr.hex.general.controller,me.chr.hex.extend.controller  # 扫描的 Controller 包路径（生成接口文档范围）
 
+# JWT 配置（开源版：直接嵌入 Base64 编码的密钥）
+jwt:
+  # RSA 私钥（Base64 编码，去掉头尾和换行）
+  #  openssl genrsa -out private.key 2048
+  private-key: MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDH3r5di4i4eo0gU04M4rrHOJKhw+t7ACkmHvJxmezu0O8gQCGl+sZ4YpdHjZd7M809FRoanzD/4rqZQwFbGOsmAEArOIUrzYRrzl+TFNpVOa80AxElAVYr/+IllEnPjrTRKVPKk921ZS1FQEU2PVXnt86g+bkBTPxnzsV8CHcUI11Xe9DfZXhct8ObJeq1JaHGbx4NzH+ZJqO1cpgz8ob3G8lbRJfW8MKSZIpArj6gu0aKwbwv4Zk1uv1sAOukhtre/iFdavxTaYaDd3XH0z6OGglPXFWFM9C8vfsB14ESl8PlaJppeghcJrnkfaDuv9P9c/YJhNpEFGLKSdbhxwibAgMBAAECggEAD9wwjfrDFCSBa2XA5Uvel215UUXbO0z1dvVwtqwIvaCtwQjlwqaGNkpYh9CICzo+mJDCnAcy27NRrFTBWEm/ayoM7YEULDgoQGfFdMXsV2P277EonJ+hB2fMOcAtJT/FQG2/nO0j5D+Nmpexhk7SsMsIpgR69kv2IYSqbh+710idBQ+HFLaVAaFrRM1llduyKWvuo3h1llQbTyd1RR08i5oUJ6ZvgdfHSV5M3QMfKB35LLe0lv+CyjUdgPsAl31lctgPZBIpMW8wp2ThlXhu/6MKWBWOFGKfS1QaM2Ip4jxDcKiEBc2QnpkmaJJ1Z8TlDmaTlh8gmMRwHfBgKvOb6QKBgQD8BIoTanyuDBhxSxAPS1q6km9NBc5bfBsbQ78OGlRnIl661YqXQ9d3f8PnCz+b8r1rP+vPV2lyiD3t0qJsqRVGZ7ckyvebddhIwjBrhgao4SOE6g6OrFl2z40y1tSB3tIdGVcEm/cyXiscvUO4mseyiePUajcTfd0LbUtrqdM3YwKBgQDLB0HGTjWrqUg4lNJGd6LIblokshanHUgZTbQ1Ln07xlVyqVZP0Je5VPSOeBwM7BvFjLS7UG2gjPRsdZTc1P+sho/BeEKIfN5ZdxFJTFt2+s/gK+lGEyBqa2+ReoS4DQxuEWfel6dKpljlml9YVKTGZLCx6yzbrQkMxGsH45C7aQKBgA4OFsFEdBWk2QwgepHPywyStCBgjYSupDheC962ezSRRyU2WZdcEj044+0TxIVnAUdk9jrHDjtz+7gywho7R9N4X09u/mYuKVTNd7PXcrGidL+p6gvs8sRciOxn7MwdaCx1SFQaeqvVcqQUrh0yjKaZaBplnhK5N0W237jubLgvAoGBAIzktFiR3d0K1PuvC12rmGPPcO8WR3Ihd+9XZT+iy3W35YR0z1kEQMZ0lmJoJ88v6vXk92cmIW3RY64AyxWVGvj3SLvSYRmmzgb4Ah8DxlWDKM9AqdnfXBd+BybGB2RSadXYbmSiiY3ccsSjpJb/5nlnVtehhLfOFQGvLTeETORBAoGBAIaZVEvC6CDKlsrhH619U4xOawk+QKWkCYdI9Wy5A1+HFSjwvehpZ5jkHhs6H1UIhD9lIMzjIu7W5Ibwp3bfN/vc3x7RKjE2K2ABDXcmmtcAAw/XhiXWer3VM526heudjV9RQzMzarb7po9xXxlUBUB4DHOE/MuzGGDzKsy5JdLW
+  # RSA 公钥（Base64 编码，去掉头尾和换行）
+  #  openssl rsa -in private.key -pubout -out public.key
+  public-key: MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAx96+XYuIuHqNIFNODOK6xziSocPrewApJh7ycZns7tDvIEAhpfrGeGKXR42XezPNPRUaGp8w/+K6mUMBWxjrJgBAKziFK82Ea85fkxTaVTmvNAMRJQFWK//iJZRJz4600SlTypPdtWUtRUBFNj1V57fOoPm5AUz8Z87FfAh3FCNdV3vQ32V4XLfDmyXqtSWhxm8eDcx/mSajtXKYM/KG9xvJW0SX1vDCkmSKQK4+oLtGisG8L+GZNbr9bADrpIba3v4hXWr8U2mGg3d1x9M+jhoJT1xVhTPQvL37AdeBEpfD5WiaaXoIXCa55H2g7r/T/XP2CYTaRBRiyknW4ccImwIDAQAB
+  # 签发者
+  issuer: http://localhost:8080
+  # Token 过期时间（秒）
+  expiration: 7200
