@@ -1,9 +1,12 @@
 package me.chr.hex.extend.service.login.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import me.chr.hex.core.R.Response.BizException;
 import me.chr.hex.extend.DTO.LoginDTO;
 import me.chr.hex.extend.VO.LoginVO;
+import me.chr.hex.general.mapper.UserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -31,6 +34,7 @@ import java.util.stream.Collectors;
  * @Author: CHR
  * @Date: create in 2025/12/9
  */
+@Slf4j
 @Getter
 public abstract class AbstractLoginServiceImpl {
 
@@ -42,6 +46,9 @@ public abstract class AbstractLoginServiceImpl {
     @Autowired
     protected AuthenticationManager authenticationManager;
 
+    @Autowired
+    protected UserMapper userMapper;
+
 //    @Autowired
 //    private RedisUtil redisUtil;
 
@@ -50,19 +57,19 @@ public abstract class AbstractLoginServiceImpl {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginRequestDTO.getUsername(), loginRequestDTO.getPassword())
         );
-        User user = (User) authentication.getPrincipal();
-
+        User securityUser = (User) authentication.getPrincipal();
+        me.chr.hex.general.entity.User user = userMapper.selectOne(new QueryWrapper<me.chr.hex.general.entity.User>().eq("username", securityUser.getUsername()));
         // 2. 生成JWT Token
-        String token=this.generateToken(user);
+        String token=this.generateToken(securityUser,user.getId());
 
         // 3. 存储Token到Redis（差异化：由子类实现）
 //        storeTokenToRedis(details.getUsername(), token);
 
         // 4. 封装返回结果（共性）
-        return new LoginVO(user,token);
+        return new LoginVO(securityUser,token);
     }
 
-    private String generateToken(User user){
+    private String generateToken(User user,String userId){
         try {
             Instant now = Instant.now();
             JwtClaimsSet claims = JwtClaimsSet.builder()
@@ -70,12 +77,13 @@ public abstract class AbstractLoginServiceImpl {
                     .subject(user.getUsername())     // 用户名
                     .issuedAt(now)
                     .expiresAt(now.plusSeconds(jwtExpirationSeconds)) // 1小时有效期
-                    .claim("username", user.getUsername())   // 自定义字段
+                    .claim("jti", userId)   // 自定义字段
                     .claim("authorities", user.getAuthorities())
                     .build();
             return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
         } catch (Exception e) {
-            throw new BizException("生成 Token 失败：" + e.getMessage());
+            log.error("生成 Token 失败!"+e);
+            throw new BizException("生成 Token 失败!有内鬼 停止交易!");
         }
     }
 

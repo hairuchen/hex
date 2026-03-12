@@ -3,19 +3,20 @@ package me.chr.hex.general.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.extern.slf4j.Slf4j;
 import me.chr.hex.core.R.Response.BizException;
+import me.chr.hex.core.security.SecurityConfig;
 import me.chr.hex.extend.DTO.UserDTO;
 import me.chr.hex.general.entity.User;
 import me.chr.hex.general.mapper.UserMapper;
 import me.chr.hex.general.service.IUserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -53,16 +54,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             }
 
             // 3.持久化
+            Jwt jwt= (Jwt) Objects.requireNonNull(SecurityContextHolder.getContext().getAuthentication()).getPrincipal();
             List<User> userList = new ArrayList<>();
             for (UserDTO userDTO : userDTOList) {
                 String encryptedPassword = passwordEncoder.encode(userDTO.getPassword());
-                User user = userDTO.ToUser(encryptedPassword,null);
+                User user = userDTO.ToUser(encryptedPassword, jwt != null ? jwt.getId() : null);
                 userList.add(user);
             }
             this.saveBatch(userList);
             return userList;
         }catch (Exception e){
-            throw new BizException("创建用户失败:"+e.getMessage());
+            log.error("创建用户失败!"+e);
+            throw new BizException("创建用户失败!");
         }
     }
 }

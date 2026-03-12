@@ -1,11 +1,13 @@
 package me.chr.hex.extend.mapper;
 
+import me.chr.hex.extend.BO.ChunkNode;
 import me.chr.hex.extend.BO.EntityNode;
 import org.springframework.data.neo4j.repository.Neo4jRepository;
 import org.springframework.data.neo4j.repository.query.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -28,4 +30,5 @@ public interface EntityNodeMapper extends Neo4jRepository<EntityNode, String> {
 
     // 创建实体之间的关系（source -> relation -> target）
 //    void createEntityRelation(String sourceEntityContent, String targetEntityContent, String relationType);
+
 }

@@ -1,6 +1,7 @@
 package me.chr.hex.extend.controller;
 
 
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.extern.slf4j.Slf4j;
 import me.chr.hex.core.R.Response.CommonResult;
 import me.chr.hex.extend.DTO.LoginDTO;
@@ -21,6 +22,7 @@ public class LoginController {
     private LoginService loginService;
 
     @PostMapping("/login")
+    @Operation(summary = "登录接口")
     public CommonResult<LoginVO> login(@RequestBody LoginDTO loginDTO) {
         return  CommonResult.success(loginService.login(loginDTO));
     }

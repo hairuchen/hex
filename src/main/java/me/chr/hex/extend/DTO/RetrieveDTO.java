@@ -6,19 +6,24 @@ package me.chr.hex.extend.DTO;
  * @Date: create in 2026/2/4
  **/
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.ToString;
+import lombok.NoArgsConstructor;
 import me.chr.hex.core.log.Loggable;
 
 /**
  * 知识召回请求 DTO
  */
 @Data
-@ToString
-public class RetrieveRequestDTO implements Loggable {
+@AllArgsConstructor
+@NoArgsConstructor
+@Schema(name = "RetrieveDTO", description = "召回请求 DTO对象")
+public class RetrieveDTO implements Loggable {
 
     /**
      * 用户查询文本（必填）

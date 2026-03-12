@@ -12,20 +12,30 @@ public interface GraphKnowledgeService {
 
     // ======================  召回（原子能力） ======================
     /**
-     * 全文检索（按原文分词匹配）
+     * 文本检索（模糊匹配）
      */
-    List<RetrieveResponseVO> retrieveByTextMatch(String query, Integer topN);
+    List<RetrieveResponseVO> retrieveByText(String query);
+
     /**
-     * 向量余弦相似度召回
+     * 分词检索
+     */
+    List<RetrieveResponseVO> retrieveByKeyword(String query,Integer topN);
+
+    /**
+     * 向量检索
      */
     List<RetrieveResponseVO> retrieveByVector(String query, Integer topN);
 
     /**
-     * TODO:路径检索
-     * 路径召回
+     * 路径检索1
      */
+    RetrieveResponseVO retrieveByPath1(String oneNode,String twoNode, Integer distance);
+    /**
+     * 路径检索2
+     */
+    RetrieveResponseVO retrieveByPath2(String query, Integer distance);
 
-    // ======================  多路召回（复合能力） ======================
-    List<RetrieveResponseVO> multiPathRetrieve(String query,  Integer topN);
+    // ======================  混合检索 ======================
+    List<RetrieveResponseVO> hybridRetrieval(String query,  Integer topN);
 
 }

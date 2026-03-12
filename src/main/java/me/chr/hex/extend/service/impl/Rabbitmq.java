@@ -100,7 +100,8 @@ public class Rabbitmq implements MessageProducer, MessageConsumer {
             // 4. 使用 ChunkNode 持久化 Chunk 列表
             List<ChunkNode> chunkNodeList=new ArrayList<>();
             for (String str:chunkList){
-                List<Double> vector=embeddingModel.embed(str);
+                //向量化 & 归一化
+                List<Double> vector=embeddingModel.normalization(str,embeddingModel.embed(str));
                 ChunkNode chunkNode = new ChunkNode(file.getId(),str, KnowledgeNodeTypeEnum.TEXT,vector,"chr");
                 chunkNodeMapper.save(chunkNode);
                 chunkNodeList.add(chunkNode);
@@ -141,11 +142,13 @@ public class Rabbitmq implements MessageProducer, MessageConsumer {
             List<String> entityList=parseModel.chunkToEntity(chunkNode.getContent());
             int index=0;
             for (String str:entityList){
+                str=str.toLowerCase();
                 EntityNode entityNode;
                 if (entityNodeMapper.existsByContent(str)){
                     entityNode = entityNodeMapper.findByContent(str).orElse(null);
                 }else{
-                    List<Double> vector=embeddingModel.embed(str);
+                    //向量化 & 归一化
+                    List<Double> vector=embeddingModel.normalization(str,embeddingModel.embed(str));
                     entityNode=new EntityNode(str,KnowledgeNodeTypeEnum.ENTITY,vector,"chr");
                     entityNodeMapper.save(entityNode);
                 }

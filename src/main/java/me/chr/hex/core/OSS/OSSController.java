@@ -27,7 +27,7 @@ public class OSSController {
     private OssService ossService;
 
     @PostMapping("/upload")
-    @Operation(summary = "上传文件")
+    @Operation(summary = "OSS 服务")
     public CommonResult<FileUploadVO> upload(@Validated @ModelAttribute FileUploadDTO dto) {
         try {
             return CommonResult.success(ossService.upload(dto.getFile(),dto.getPartition()));

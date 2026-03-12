@@ -1,4 +1,4 @@
-package me.chr.hex.extend.service.impl;
+package me.chr.hex.extend.service.login.impl;
 
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -6,8 +6,6 @@ import me.chr.hex.extend.BO.Permission;
 import me.chr.hex.extend.mapper.PermissionMapper;
 import me.chr.hex.extend.service.PermissionService;
 import me.chr.hex.general.entity.Menu;
-import me.chr.hex.general.entity.Role;
-import me.chr.hex.general.entity.User;
 import me.chr.hex.general.mapper.DepartmentMapper;
 import me.chr.hex.general.mapper.MenuMapper;
 import me.chr.hex.general.mapper.RoleMapper;

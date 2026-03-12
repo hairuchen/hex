@@ -39,6 +39,7 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
@@ -47,10 +48,12 @@ import org.springframework.util.StringUtils;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
@@ -245,7 +248,7 @@ public class SecurityConfig implements AuthenticationEntryPoint, AccessDeniedHan
     public JwtEncoder jwtEncoder(RSAPublicKey rsaPublicKey,RSAPrivateKey rsaPrivateKey) {
         if (!rsaPublicKey.getModulus().equals(rsaPrivateKey.getModulus())) {
             // 抛出明确的异常，提示公私钥不匹配
-            throw new IllegalArgumentException("有内鬼 终止交易!");
+            throw new IllegalArgumentException("公私钥长度不匹配!");
         }
         log.warn("✅ RSA 公私钥配对验证通过，模数长度：{} bit", rsaPublicKey.getModulus().bitLength());
         return NimbusJwtEncoder.withKeyPair(rsaPublicKey,rsaPrivateKey).build();
@@ -253,19 +256,23 @@ public class SecurityConfig implements AuthenticationEntryPoint, AccessDeniedHan
 
     // 加密使用 RSA 私钥
     @Bean
-    public RSAPrivateKey rsaPrivateKey() throws Exception {
-        String cleanKey = privateKey
-                .replaceAll("\\s", "")
-                .replace("-----BEGIN PRIVATE KEY-----", "")
-                .replace("-----END PRIVATE KEY-----", "");
-        byte[] keyBytes = Base64.getDecoder().decode(cleanKey);
-        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes);
-        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        PrivateKey privateKey = keyFactory.generatePrivate(keySpec);
+    public RSAPrivateKey rsaPrivateKey()  {
+        try {
+            String cleanKey = privateKey
+                    .replaceAll("\\s", "")
+                    .replace("-----BEGIN PRIVATE KEY-----", "")
+                    .replace("-----END PRIVATE KEY-----", "");
+            byte[] keyBytes = Base64.getDecoder().decode(cleanKey);
+            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes);
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            PrivateKey privateKey = keyFactory.generatePrivate(keySpec);
 
-        if (privateKey instanceof RSAPrivateKey) {
-            return (RSAPrivateKey) privateKey;
-        } else {
+            if (privateKey instanceof RSAPrivateKey) {
+                return (RSAPrivateKey) privateKey;
+            } else {
+                throw new IllegalArgumentException("非法私钥!");
+            }
+        }catch (IllegalArgumentException | NoSuchAlgorithmException | InvalidKeySpecException e){
             throw new IllegalArgumentException("非法私钥!");
         }
     }
@@ -273,18 +280,22 @@ public class SecurityConfig implements AuthenticationEntryPoint, AccessDeniedHan
     // 解密使用 RSA 公钥（用于验签）
     @Bean
     public RSAPublicKey rsaPublicKey() throws Exception {
-        // 去掉 Base64 字符串中的换行和头尾（如果有的话）
-        String cleanKey = publicKey
-                .replaceAll("\\s", "") // 去掉所有空白字符
-                .replace("-----BEGIN PUBLIC KEY-----", "")
-                .replace("-----END PUBLIC KEY-----", "");
-        byte[] keyBytes = Base64.getDecoder().decode(cleanKey);
-        X509EncodedKeySpec keySpec = new X509EncodedKeySpec(keyBytes);
-        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        PublicKey publicKey = keyFactory.generatePublic(keySpec);
-        if (publicKey instanceof RSAPublicKey) {
-            return (RSAPublicKey) publicKey;
-        } else {
+        try {
+            // 去掉 Base64 字符串中的换行和头尾（如果有的话）
+            String cleanKey = publicKey
+                    .replaceAll("\\s", "") // 去掉所有空白字符
+                    .replace("-----BEGIN PUBLIC KEY-----", "")
+                    .replace("-----END PUBLIC KEY-----", "");
+            byte[] keyBytes = Base64.getDecoder().decode(cleanKey);
+            X509EncodedKeySpec keySpec = new X509EncodedKeySpec(keyBytes);
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            PublicKey publicKey = keyFactory.generatePublic(keySpec);
+            if (publicKey instanceof RSAPublicKey) {
+                return (RSAPublicKey) publicKey;
+            } else {
+                throw new IllegalArgumentException("非法公钥!");
+            }
+        }catch (IllegalArgumentException | NoSuchAlgorithmException | InvalidKeySpecException e){
             throw new IllegalArgumentException("非法公钥!");
         }
     }

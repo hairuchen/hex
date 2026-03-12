@@ -21,3 +21,7 @@ OPTIONS {
 SHOW INDEXES WHERE type = 'VECTOR';
 SHOW INDEXES WHERE name = 'chunk_embedding_index';
 -- DROP INDEX chunk_embedding_index IF EXISTS;
+
+CREATE FULLTEXT INDEX chunkContentIndex
+FOR (n:ChunkNode)
+ON EACH [n.content];

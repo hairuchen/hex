@@ -6,26 +6,32 @@ import com.alibaba.dashscope.aigc.generation.GenerationResult;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversation;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationParam;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationResult;
-import com.alibaba.dashscope.common.Message;
-import com.alibaba.dashscope.common.MultiModalMessage;
-import com.alibaba.dashscope.common.ResponseFormat;
-import com.alibaba.dashscope.common.Role;
+import com.alibaba.dashscope.common.*;
 import com.alibaba.dashscope.embeddings.TextEmbedding;
 import com.alibaba.dashscope.embeddings.TextEmbeddingParam;
 import com.alibaba.dashscope.embeddings.TextEmbeddingResult;
 import com.alibaba.dashscope.exception.ApiException;
+import com.alibaba.dashscope.exception.InputRequiredException;
 import com.alibaba.dashscope.exception.NoApiKeyException;
 import com.alibaba.dashscope.exception.UploadFileException;
+import com.alibaba.dashscope.rerank.TextReRank;
+import com.alibaba.dashscope.rerank.TextReRankOutput;
+import com.alibaba.dashscope.rerank.TextReRankParam;
+import com.alibaba.dashscope.rerank.TextReRankResult;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import me.chr.hex.core.algorithm.Normalization;
 import me.chr.hex.extend.BO.ImageChunkParseResult;
 import me.chr.hex.extend.service.EmbeddingModel;
 import me.chr.hex.extend.service.ParseModel;
+import me.chr.hex.extend.service.QuicklyAbstractModel;
+import me.chr.hex.extend.service.RerankModel;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @Author: CHR
@@ -33,7 +39,7 @@ import java.util.*;
  **/
 @Slf4j
 @Service
-public class QwenModel implements ParseModel,EmbeddingModel {
+public class QwenModel implements ParseModel,EmbeddingModel, RerankModel , QuicklyAbstractModel {
 
     @Value("${dashscope.api-key}")
     private String apiKey;
@@ -114,7 +120,7 @@ public class QwenModel implements ParseModel,EmbeddingModel {
             TextEmbeddingParam param = TextEmbeddingParam
                     .builder()
                     .apiKey(apiKey)
-                    .model("text-embedding-v4")  // 使用text-embedding-v4模型
+                    .model("text-embedding-v4")  // 使用text-embedding-v4模型 此模型已经应用 L2归一化
                     .texts(Collections.singletonList(str))  // 输入文本
                     .parameter("dimension", 1024)  // 指定向量维度（仅 text-embedding-v3及 text-embedding-v4支持该参数）
                     .build();
@@ -126,6 +132,30 @@ public class QwenModel implements ParseModel,EmbeddingModel {
             return result.getOutput().getEmbeddings().getFirst().getEmbedding();
         } catch (ApiException | NoApiKeyException e) {
             throw new RuntimeException("QwenModel远程调用异常:" , e);
+        }
+    }
+
+    @Override
+    public List<Double> normalization(String chunk,List<Double> vectors) {
+            return this.L2Normalization(chunk,vectors);
+    }
+
+    private List<Double> L2Normalization(String chunk,List<Double> vectors) {
+        List<Double> normalizedVector = null;
+        if (vectors != null && !vectors.isEmpty()) {
+            // 1. List<Double> 转 double[]（适配归一化方法）
+            double[] vectorArray = vectors.stream()
+                    .mapToDouble(Double::doubleValue)
+                    .toArray();
+            // 2. 调用 L2 归一化方法
+            double[] normalizedArray = Normalization.L2Normalize(vectorArray);
+            // 3. double[] 转回 List<Double>
+            normalizedVector = Arrays.stream(normalizedArray)
+                    .boxed()
+                    .toList();
+            return normalizedVector;
+        } else {
+            throw new RuntimeException("Chunk向量化结果为空,chunk内容: " + chunk);
         }
     }
 
@@ -239,4 +269,97 @@ public class QwenModel implements ParseModel,EmbeddingModel {
     }
 
 
+    @Override
+    public List<HashMap<String, Object>> rerank(String query, List<String> documents,Integer size) {
+        try {
+            TextReRankParam param=TextReRankParam
+                    .builder()
+                    .apiKey(apiKey)
+                    .model("qwen3-rerank")
+                    .query(query)
+                    .documents(documents)
+                    .topN(documents.size())
+                    .returnDocuments(true)
+                    .build();
+
+
+            // 创建模型实例并调用
+            TextReRank textReRank = new TextReRank();
+            TextReRankResult result = textReRank.call(param);
+
+            List<TextReRankOutput.Result> textReRankOutput=result.getOutput().getResults();
+            List<HashMap<String, Object>> sortedResults = new ArrayList<>(size);
+
+            for (TextReRankOutput.Result item : textReRankOutput) {
+                HashMap<String, Object> map = new HashMap<>();
+
+                // 提取分数
+                Double score = item.getRelevanceScore();
+                map.put("score", score != null ? score : 0.0);
+
+                // 提取文本
+                String text = "";
+                if (item.getDocument() != null) {
+                    text = item.getDocument().getText();
+                }
+                // 容错：如果 API 没返回 document (虽然设置了 returnDocuments=true)，则根据 index 从原列表取
+                if (text == null && item.getIndex() != null && item.getIndex() >= 0 && item.getIndex() < documents.size()) {
+                    text = documents.get(item.getIndex());
+                }
+                map.put("text", text != null ? text : "");
+
+                sortedResults.add(map);
+            }
+
+            return sortedResults;
+        } catch (ApiException | NoApiKeyException |InputRequiredException e) {
+            throw new RuntimeException("QwenModel远程调用异常:" , e);
+        }
+    }
+
+    @Override
+    public HashMap<String, String> quicklyAbstractEntity(String query) {
+        try {
+            // 1. 构造 Prompt（强制返回 JSON）
+            String prompt = "你是一个知识图谱抽象专家，请从以下文本中提取两个实体，不要多也不要少。\n" +
+                    "文本内容：\n" + query + "\n\n" +
+                    "要求：\n" +
+                    "1. 必须有两个实体,如:iphone16是否支持快充？ 提取为:iphone16 和 快充\n" +
+                    "2. 只返回 JSON，不要任何解释、不要多余内容\n" +
+                    "3. JSON 结构如下：\n" +
+                    "{\n" +
+                    "  \"oneNode\": \"实体1\",\n" +
+                    "  \"twoNode\": \"实体2\"\n" +
+                    "}";
+
+            // 2. 构造消息
+            Message message = Message.builder()
+                    .role(Role.USER.getValue())
+                    .content(prompt)
+                    .build();
+
+            // 3. 调用 Qwen3-Max
+            GenerationParam param = GenerationParam.builder()
+                    .apiKey(apiKey)
+                    .model("qwen-plus")
+                    .messages(Collections.singletonList(message))
+//                    .temperature(0.1F) // 低温度，保证结果稳定
+                    .resultFormat(GenerationParam.ResultFormat.MESSAGE)
+                    .build();
+
+            Generation generation = new Generation();
+            GenerationResult result = generation.call(param);
+            String rawJson = result.getOutput().getChoices().getFirst().getMessage().getContent();
+            if (rawJson == null || rawJson.trim().isEmpty()) {
+                throw new RuntimeException("模型返回内容为空");
+            }
+            return objectMapper.readValue(
+                    rawJson,
+                    new TypeReference<HashMap<String, String>>() {}
+            );
+        } catch (Exception e) {
+            log.error("QwenModel远程调用异常:" , e);
+            throw new RuntimeException("QwenModel远程调用异常:" , e);
+        }
+    }
 }

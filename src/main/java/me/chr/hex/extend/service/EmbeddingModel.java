@@ -15,4 +15,11 @@ public interface EmbeddingModel {
      * @return 浮点型向量列表
      */
     List<Double> embed(String text);
+
+    /**
+     * 归一化
+     * @param vectors 待归一化的向量集合
+     * @return 向量集合
+     */
+    List<Double> normalization(String chunk,List<Double> vectors);
 }

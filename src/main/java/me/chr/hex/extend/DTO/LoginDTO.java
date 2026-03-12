@@ -16,6 +16,7 @@ import me.chr.hex.core.log.Loggable;
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString(exclude = "password")
+@Schema(name = "LoginDTO", description = "登录请求 DTO对象")
 public class LoginDTO implements Loggable {
     @Schema(description = "账号")
     private String username;

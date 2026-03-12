@@ -19,7 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 @EqualsAndHashCode(callSuper = true)
 @Slf4j
 @NoArgsConstructor
-@Schema(name = "FileUploadDTO", description = "文件上传请求对象")
+@Schema(name = "FileUploadDTO", description = "文件上传 DTO对象")
 @Data
 public class FileUploadDTO extends FileUploadVO implements Loggable {
 

@@ -28,14 +28,25 @@ public interface ChunkNodeMapper extends Neo4jRepository<ChunkNode, String> {
     void createNextChunkRelation(@Param("fromId") String fromId, @Param("toId") String toId);
 
 
+    //====================================== 查询 ======================================
     @Query("""
-        MATCH (c:ChunkNode)
-        WHERE c.isDelete = false AND c.content CONTAINS $query
-        RETURN c
-        ORDER BY size(c.content) DESC
-        LIMIT $topN
-        """)
-    List<ChunkNode> findTopByContentContaining(
+            MATCH (c:ChunkNode)
+            WHERE c.isDelete = false AND c.content CONTAINS $content
+            RETURN c
+            ORDER BY c.createTime DESC
+            LIMIT 30
+            """)
+    List<ChunkNode> findByContentContainingLimit(String content);
+
+
+    @Query("""
+            CALL db.index.fulltext.queryNodes('chunkContentIndex', $query, {limit: $topN})
+            YIELD node AS chunk, score
+            WHERE chunk.isDelete = false
+            RETURN chunk AS chunkNode, score
+            ORDER BY score DESC
+            """)
+    List<RetrieveResponseVO> findTopByFullText(
             @Param("query") String query,
             @Param("topN") int topN
     );
@@ -51,4 +62,16 @@ public interface ChunkNodeMapper extends Neo4jRepository<ChunkNode, String> {
             @Param("queryVector") List<Double> queryVector,
             @Param("topN") int topN
     );
+
+
+    @Query("""
+            MATCH (start:EntityNode {content: $startEntity}), (end:EntityNode {content: $endEntity})
+            MATCH path = shortestPath((start)-[:CONTAIN*..10]-(end))
+            WITH nodes(path) AS allNodes
+            UNWIND allNodes AS node
+            WITH DISTINCT node
+            WHERE node:ChunkNode
+            RETURN node
+            """)
+    List<ChunkNode> findChunksByShortestPath(String startEntity, String endEntity, int maxDepth);
 }

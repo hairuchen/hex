@@ -24,6 +24,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString(exclude = "password")
+@Schema(name = "UserDTO", description = "用户请求 DTO对象")
 public class UserDTO implements Loggable {
 
     /**
