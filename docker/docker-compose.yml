@@ -1,4 +1,29 @@
 services:
+  # 1. 启动 Jaeger (用来展示链路图)
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    ports:
+      - "16686:16686" # Jaeger 的 Web 界面端口
+      - "14250:14250" # Collector 发送数据给 Jaeger 的端口
+    networks:
+      - hex-network-feature1
+
+  # 2. 启动 OpenTelemetry Collector (用来收数据)
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector
+    command: [ "--config=/etc/otelcol/config.yaml" ]
+    ports:
+      - "4317:4317" # 接收探针数据的 gRPC 端口
+      - "4318:4318" # 接收探针数据的 HTTP 端口
+    volumes:
+      - ./opentelemetry/otel-config.yaml:/etc/otelcol/config.yaml # 挂载你的配置文件
+    depends_on:
+      - jaeger # 确保 Jaeger 先启动
+    networks:
+      - hex-network-feature1
+
   backend:
     build:
       context: ../  # 指向项目根目录
@@ -10,7 +35,12 @@ services:
     networks:
       - hex-network-feature1
     restart: always
+    environment:
+      - OTEL_SERVICE_NAME=hex-backend-feature1
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
     volumes:
+      - ./opentelemetry/opentelemetry-javaagent.jar:/opt/otel/opentelemetry-javaagent.jar #开启日志探针
       - ./hex-backend-feature1/logs:/app/logs #日志持久化
 
 

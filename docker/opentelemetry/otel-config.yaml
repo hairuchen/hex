@@ -1,0 +1,27 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  # 添加批处理处理器，提升性能，这是最佳实践
+  batch:
+
+exporters:
+  # 调试用：在 Collector 控制台打印日志
+  debug: {}
+  # 发送到 Jaeger
+  otlp:
+    endpoint: jaeger:4317 # 注意：这里写的是服务名 jaeger，不是 localhost
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug, otlp]
