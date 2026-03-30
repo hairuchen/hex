@@ -45,10 +45,10 @@ spring:
           # 可选：JWT 签发者（和生成 Token 时的 issuer 一致）
           issuer-uri: ${jwt.issuer}
   neo4j:
-    uri: bolt://192.168.1.198:7687
+    uri: bolt://192.168.1.42:7687
     authentication:
       username: neo4j
-      password: yk12345678
+      password: neo4j123456
   rabbitmq:
     host: 192.168.1.42
     port: 5672

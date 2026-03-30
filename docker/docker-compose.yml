@@ -1,5 +1,5 @@
 services:
-  hex-backend-feature1:
+  backend:
     build:
       context: ../  # 指向项目根目录
       dockerfile: Dockerfile
@@ -69,14 +69,7 @@ services:
       - "7687:7687"  # Bolt协议端口（Java客户端连接）
     environment:
       # 核心配置：开启认证、设置密码
-      NEO4J_AUTH: admin/admin123456  # 账号/密码：neo4j/kb_neo4j123456
-      # 内存配置：适配向量存储和图计算（根据服务器配置调整）
-      NEO4J_HEAP_MEMORY: 2G             # JVM堆内存
-      NEO4J_PAGE_CACHE_MEMORY: 1G       # 页面缓存内存
-      # 启用向量索引（Neo4j 5.x+支持，核心！用于余弦相似度计算）
-      NEO4J_PLUGINS: '["apoc", "vector"]'  # 安装APOC工具库+向量插件
-      # 允许跨域（开发环境）
-      NEO4J_server_http_cors__allowed_origin: "*"
+      - NEO4J_AUTH=neo4j/neo4j123456
     volumes:
       - ./neo4j/data:/data               # 数据持久化
       - ./neo4j/logs:/logs               # 日志
@@ -86,7 +79,7 @@ services:
     networks:
       - hex-network-feature1
     healthcheck:
-      test: [ "CMD-SHELL", "cypher-shell -u neo4j -p kb_neo4j123456 'MATCH (n) RETURN count(n) LIMIT 1'" ]
+      test: [ "CMD-SHELL", "cypher-shell -u neo4j -p neo4j123456 'MATCH (n) RETURN count(n) LIMIT 1'" ]
       interval: 10s
       timeout: 5s
       retries: 5

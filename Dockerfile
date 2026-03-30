@@ -23,7 +23,7 @@ WORKDIR /app
 
 # 从构建阶段复制 JAR 包和启动脚本
 # --from=builder 指定从第一个阶段（builder）复制文件
-COPY --from=builder /app/target/hex-alpha.jar /app/app.jar
+COPY --from=builder /app/target/*.jar /app/app.jar
 COPY --from=builder /app/entrypoint.sh /app/entrypoint.sh
 
 # 赋予启动脚本执行权限
