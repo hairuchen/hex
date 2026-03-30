@@ -6,6 +6,13 @@ services:
     ports:
       - "16686:16686" # Jaeger 的 Web 界面端口
       - "14250:14250" # Collector 发送数据给 Jaeger 的端口
+    environment:
+      - SPAN_STORAGE_TYPE=badger
+      - BADGER_EPHEMERAL=false
+      - BADGER_DIRECTORY_KEY=/badger/key
+      - BADGER_DIRECTORY_VALUE=/badger/data
+    volumes:
+      - ./jaeger/data:/badger
     networks:
       - hex-network-feature1
 
