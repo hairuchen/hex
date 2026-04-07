@@ -21,7 +21,7 @@ import lombok.NoArgsConstructor;
  * </p>
  *
  * @author baomidou
- * @since 2026-03-12
+ * @since 2026-04-10
  */
 @Data
 @NoArgsConstructor
@@ -54,7 +54,6 @@ public class File implements Serializable {
      * 文件唯一标识（主键）
      */
     @Schema(description = "文件唯一标识（主键）")
-    @TableField("id")
     @TableId(value = "id")
     private String id;
 

@@ -52,8 +52,9 @@ public class CodeGenerator implements CommandLineRunner {
                 .packageConfig(this::packageConf)
                 // 4. 策略配置
                 .strategyConfig(builder -> builder
-                        .addInclude(prefix + ".*")
+                        .addInclude(prefix + ".*_default$")
                         .addTablePrefix(prefix)
+                        .addTableSuffix("_default")
                         .entityBuilder()
                         .enableLombok()
                         .logicDeleteColumnName("is_deleted")
@@ -82,7 +83,8 @@ public class CodeGenerator implements CommandLineRunner {
                 .packageConfig(this::packageConf)
                 // 4. 策略配置
                 .strategyConfig(builder -> builder
-                                .addTablePrefix(prefix)
+                                .addInclude(prefix + ".*_default$")
+                                .addTableSuffix("_default")
                                 .entityBuilder().disable()
                                 .mapperBuilder().disable()
                                 .controllerBuilder().disable()

@@ -27,7 +27,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString
-@TableName("\"${table.name}\"")
+@TableName("${table.name?replace('_default$', '', 'r')}")
 @Schema(name = "${entity}", description = "${table.comment!}")
 @JsonPropertyOrder({
 <#list table.fields as field>
@@ -47,15 +47,16 @@ public class ${entity} implements Serializable {
      * ${field.comment!}
      */
     @Schema(description = "${field.comment!}")
-    @TableField("${field.annotationColumnName}")
-    <#-- 主键策略处理 -->
-    <#if field.keyFlag>
+    <#-- 只有 id 字段使用 @TableId 注解 -->
+    <#if field.keyFlag && field.propertyName == "id">
            <#assign keyPropertyName="${field.propertyName}"/>
            <#if field.idType??>
     @TableId(value = "${field.annotationColumnName}", type = IdType.${field.idType})
             <#else>
     @TableId(value = "${field.annotationColumnName}")
            </#if>
+    <#else>
+    @TableField("${field.annotationColumnName}")
     </#if>
     <#if field.propertyType == 'LocalDateTime' || field.propertyType == 'Date'>
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")

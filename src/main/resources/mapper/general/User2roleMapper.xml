@@ -5,14 +5,16 @@
     <!-- 通用查询映射结果 -->
     <resultMap id="BaseResultMap" type="me.chr.hex.general.entity.User2role">
         <id column="id" property="id" />
+        <id column="tenant_id" property="tenantId" />
         <result column="user_id" property="userId" />
         <result column="role_id" property="roleId" />
+        <result column="creator_id" property="creatorId" />
         <result column="create_time" property="createTime" />
     </resultMap>
 
     <!-- 通用查询结果列 -->
     <sql id="Base_Column_List">
-        id, user_id, role_id, create_time
+        id, tenant_id, user_id, role_id, creator_id, create_time
     </sql>
 
 </mapper>

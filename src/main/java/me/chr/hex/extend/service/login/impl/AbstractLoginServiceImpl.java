@@ -1,12 +1,13 @@
 package me.chr.hex.extend.service.login.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import me.chr.hex.general.entity.Tenant;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import me.chr.hex.core.R.Response.BizException;
 import me.chr.hex.extend.DTO.LoginDTO;
 import me.chr.hex.extend.VO.LoginVO;
-import me.chr.hex.general.mapper.UserMapper;
+import me.chr.hex.general.mapper.SysUserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -40,6 +41,8 @@ public abstract class AbstractLoginServiceImpl {
 
     @Value("${jwt.expiration:3600}")
     private long jwtExpirationSeconds;
+    @Value("${jwt.issuer:http://localhost:8080}")
+    private String issuer;
     @Autowired
     private JwtEncoder jwtEncoder;
 
@@ -47,7 +50,10 @@ public abstract class AbstractLoginServiceImpl {
     protected AuthenticationManager authenticationManager;
 
     @Autowired
-    protected UserMapper userMapper;
+    protected SysUserMapper userMapper;
+
+    @Autowired
+    protected me.chr.hex.general.mapper.TenantMapper tenantMapper;
 
 //    @Autowired
 //    private RedisUtil redisUtil;
@@ -58,31 +64,57 @@ public abstract class AbstractLoginServiceImpl {
                 new UsernamePasswordAuthenticationToken(loginRequestDTO.getUsername(), loginRequestDTO.getPassword())
         );
         User securityUser = (User) authentication.getPrincipal();
-        me.chr.hex.general.entity.User user = userMapper.selectOne(new QueryWrapper<me.chr.hex.general.entity.User>().eq("username", securityUser.getUsername()));
-        // 2. 生成JWT Token
-        String token=this.generateToken(securityUser,user.getId());
 
-        // 3. 存储Token到Redis（差异化：由子类实现）
+        // 2. 判断是普通用户还是租户登录
+        me.chr.hex.general.entity.SysUser user = userMapper.selectOne(new QueryWrapper<me.chr.hex.general.entity.SysUser>().eq("username", securityUser.getUsername()));
+        boolean isTenant = false;
+        String userId;
+
+        if (user != null) {
+            // 普通用户登录
+            userId = user.getId();
+        } else {
+            // 租户登录
+            me.chr.hex.general.entity.Tenant tenant = tenantMapper.selectOne(
+                    new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<me.chr.hex.general.entity.Tenant>()
+                            .eq("username", securityUser.getUsername()));
+            if (tenant != null) {
+                isTenant = true;
+                userId = tenant.getId();
+            } else {
+                throw new BizException("用户或租户不存在");
+            }
+        }
+
+        // 3. 生成JWT Token
+        String token=this.generateToken(securityUser, userId, isTenant);
+
+        // 4. 存储Token到Redis（差异化：由子类实现）
 //        storeTokenToRedis(details.getUsername(), token);
 
-        // 4. 封装返回结果（共性）
+        // 5. 封装返回结果（共性）
         return new LoginVO(securityUser,token);
     }
 
-    private String generateToken(User user,String userId){
+    private String generateToken(User user, String userId, boolean isTenant) {
         try {
             Instant now = Instant.now();
+            // 将 GrantedAuthority 集合转为字符串列表
+            List<String> authorityStrings = user.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .toList();
             JwtClaimsSet claims = JwtClaimsSet.builder()
-                    .issuer("http://localhost:8080") // 签发者（和验签配置一致）
+                    .issuer(issuer) // 签发者（和验签配置一致）
                     .subject(user.getUsername())     // 用户名
                     .issuedAt(now)
                     .expiresAt(now.plusSeconds(jwtExpirationSeconds)) // 1小时有效期
                     .claim("jti", userId)   // 自定义字段
-                    .claim("authorities", user.getAuthorities())
+                    .claim("authorities", authorityStrings)
+                    .claim("isTenant", isTenant)  // 租户标识
                     .build();
             return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
         } catch (Exception e) {
-            log.error("生成 Token 失败!"+e);
+            log.error("生成 Token 失败!" + e);
             throw new BizException("生成 Token 失败!有内鬼 停止交易!");
         }
     }

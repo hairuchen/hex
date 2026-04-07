@@ -81,42 +81,54 @@ public class GlobalExceptionHandler {
             uri = request.getRequestURI();
             method = request.getMethod();
         }
-        // 分场景处理
-        if (e.getMessage().contains("Required request body is missing")){
-            // 请求体为空
-            log.warn(">>> 请求参数异常 | 接口: [{} {}] | 详情: 请求体Http Body为空", method, uri);
-            return CommonResult.failure(ResultCode.VALIDATE_FAILED,"请求体Http Body为空");
-        } else if (e.getMessage().contains("JSON parse error")&&!e.getMessage().contains("extend.Enum.")) {
-            // json 格式错误
-            log.warn(">>> 请求参数异常 | 接口: [{} {}] | 详情: JSON 格式错误", method, uri);
-            return CommonResult.failure(ResultCode.VALIDATE_FAILED,"JSON 格式错误");
-        } else if (e.getMessage().contains("Cannot deserialize value of type") && e.getMessage().contains("from Array value") && e.getMessage().contains("JsonToken.START_ARRAY")) {
-            // 预期对象，实际传入数组
-            // 正则1: 匹配 "Cannot deserialize value of type `xxx` from Array value"（对象传数组）
-            final Pattern OBJECT_FROM_ARRAY_PATTERN = Pattern.compile("Cannot deserialize value of type `([^`]+)` from Array value");
-            // 从异常信息中提取目标类型名称
-            String targetType = extractTargetType(e.getMessage(),OBJECT_FROM_ARRAY_PATTERN);
-            // 拼接精准的提示信息
-            log.warn(">>> 请求参数异常 | 接口: [{} {}] | 详情: 预期接收[{}}]类型的对象，实际传入了数组", method, uri,targetType);
-            String tip = String.format("请求参数格式错误: 预期接收[%s]类型的对象，实际传入了数组", targetType);
-            return CommonResult.failure(ResultCode.VALIDATE_FAILED, tip);
-        } else if (e.getMessage().contains("Cannot deserialize value of type") && e.getMessage().contains("from Object value") && e.getMessage().contains("JsonToken.START_OBJECT")) {
-            // 预期数组，实际传入对象
-            // 正则2: 匹配 "Cannot deserialize value of type `xxx` from Object value"（数组传对象）
+
+        String msg = e.getMessage();
+        if (msg == null) {
+            log.warn(">>> 请求参数异常 | 接口: [{} {}] | 详情: 异常信息为空", method, uri);
+            return CommonResult.failure(ResultCode.VALIDATE_FAILED, "请求参数异常");
+        }
+
+        // 分场景处理 - 按条件特异性从高到低排序
+        // 1. 枚举类型错误（最具体）
+        if (msg.contains("extend.Enum.")) {
+            int problemIndex = msg.indexOf("problem: ");
+            log.warn(">>> 请求参数异常 | 接口: [{} {}] | 详情: {}", method, uri, msg);
+            return CommonResult.failure(ResultCode.VALIDATE_FAILED, msg.substring(problemIndex + 9));
+        }
+
+        // 2. 预期数组，实际传入对象（List传成了对象）
+        if (msg.contains("Cannot deserialize value of type") && msg.contains("from Object value") && msg.contains("JsonToken.START_OBJECT")) {
             final Pattern ARRAY_FROM_OBJECT_PATTERN = Pattern.compile("Cannot deserialize value of type `([^`]+)` from Object value");
-            String targetType = extractTargetType(e.getMessage(), ARRAY_FROM_OBJECT_PATTERN);
-            log.warn(">>> 请求参数异常 | 接口: [{} {}] | 详情: 预期接收[{}}]类型的List数组，实际传入了对象", method, uri,targetType);
+            String targetType = extractTargetType(msg, ARRAY_FROM_OBJECT_PATTERN);
+            log.warn(">>> 请求参数异常 | 接口: [{} {}] | 详情: 预期接收[{}]类型的List数组，实际传入了对象", method, uri, targetType);
             String tip = String.format("请求参数格式错误: 预期接收[%s]类型的List数组，实际传入了对象", targetType);
             return CommonResult.failure(ResultCode.VALIDATE_FAILED, tip);
-        }else if (e.getMessage().contains("extend.Enum.")) {
-            //枚举类型错误
-            int problemIndex = e.getMessage().indexOf("problem: ");
-            log.warn(">>> 请求参数异常 | 接口: [{} {}] | 详情: {}", method, uri,e.getMessage());
-            return CommonResult.failure(ResultCode.VALIDATE_FAILED,e.getMessage().substring(problemIndex+9));
-        } else{
-            log.warn(">>> 请求参数异常 | 接口: [{} {}] | 详情: ", method, uri,e);
-            return CommonResult.failure(ResultCode.VALIDATE_FAILED,"特殊异常 请联系开发者");
         }
+
+        // 3. 预期对象，实际传入数组（对象传成了List）
+        if (msg.contains("Cannot deserialize value of type") && msg.contains("from Array value") && msg.contains("JsonToken.START_ARRAY")) {
+            final Pattern OBJECT_FROM_ARRAY_PATTERN = Pattern.compile("Cannot deserialize value of type `([^`]+)` from Array value");
+            String targetType = extractTargetType(msg, OBJECT_FROM_ARRAY_PATTERN);
+            log.warn(">>> 请求参数异常 | 接口: [{} {}] | 详情: 预期接收[{}]类型的对象，实际传入了数组", method, uri, targetType);
+            String tip = String.format("请求参数格式错误: 预期接收[%s]类型的对象，实际传入了数组", targetType);
+            return CommonResult.failure(ResultCode.VALIDATE_FAILED, tip);
+        }
+
+        // 4. 请求体为空
+        if (msg.contains("Required request body is missing")) {
+            log.warn(">>> 请求参数异常 | 接口: [{} {}] | 详情: 请求体Http Body为空", method, uri);
+            return CommonResult.failure(ResultCode.VALIDATE_FAILED, "请求体Http Body为空");
+        }
+
+        // 5. JSON 格式错误（兜底，范围最大）
+        if (msg.contains("JSON parse error")) {
+            log.warn(">>> 请求参数异常 | 接口: [{} {}] | 详情: JSON 格式错误", method, uri);
+            return CommonResult.failure(ResultCode.VALIDATE_FAILED, "JSON 格式错误");
+        }
+
+        // 6. 未知异常
+        log.warn(">>> 请求参数异常 | 接口: [{} {}] | 详情: ", method, uri, e);
+        return CommonResult.failure(ResultCode.VALIDATE_FAILED, "特殊异常 请联系开发者");
     }
 
     /**

@@ -10,8 +10,8 @@ import me.chr.hex.core.R.Response.CommonResult;
 import me.chr.hex.core.R.Response.ResultCode;
 import me.chr.hex.extend.BO.Permission;
 import me.chr.hex.extend.service.PermissionService;
-import me.chr.hex.general.entity.User;
-import me.chr.hex.general.mapper.UserMapper;
+import me.chr.hex.general.entity.SysUser;
+import me.chr.hex.general.mapper.SysUserMapper;
 import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,10 +34,9 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.jwt.*;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -85,7 +84,9 @@ public class SecurityConfig implements AuthenticationEntryPoint, AccessDeniedHan
     private List<String> customPermitPaths;
 
     @Autowired
-    private UserMapper userMapper;
+    private SysUserMapper userMapper;
+    @Autowired
+    private me.chr.hex.general.mapper.TenantMapper tenantMapper;
     @Autowired
     private PermissionService permissionService;
 
@@ -182,15 +183,37 @@ public class SecurityConfig implements AuthenticationEntryPoint, AccessDeniedHan
 
     /**
      * UserDetailsService 接口
-     * 实现用户校验
+     * 实现用户校验（支持普通用户和租户登录）
      */
     @Override
     public @NonNull UserDetails loadUserByUsername(@NonNull String username) throws UsernameNotFoundException {
-        User user = userMapper.selectOne(new QueryWrapper<User>()
+        // 1. 先尝试从普通用户表查找
+        SysUser user = userMapper.selectOne(new QueryWrapper<SysUser>()
                 .eq("username", username));
-        if (user==null){
-            throw new UsernameNotFoundException("用户不存在");
+
+        if (user != null) {
+            // 普通用户登录
+            return loadSysUserDetails(user);
         }
+
+        // 2. 普通用户不存在，尝试从租户表查找
+        me.chr.hex.general.entity.Tenant tenant = tenantMapper.selectOne(
+                new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<me.chr.hex.general.entity.Tenant>()
+                        .eq("username", username));
+
+        if (tenant != null) {
+            // 租户登录
+            return loadTenantDetails(tenant);
+        }
+
+        // 3. 都找不到，抛出异常
+        throw new UsernameNotFoundException("用户不存在");
+    }
+
+    /**
+     * 加载普通用户详情
+     */
+    private UserDetails loadSysUserDetails(SysUser user) {
         //账号是否可用
         boolean enabled = true;
         //账号是否没有锁定
@@ -215,6 +238,26 @@ public class SecurityConfig implements AuthenticationEntryPoint, AccessDeniedHan
     }
 
     /**
+     * 加载租户详情（租户拥有所有权限）
+     */
+    private UserDetails loadTenantDetails(me.chr.hex.general.entity.Tenant tenant) {
+        // 账号是否可用
+        boolean enabled = tenant.getStatus() != null && tenant.getStatus() == 1;
+
+        // 获取租户下的所有权限
+        List<Permission> allPermissions = permissionService.getTenantAllPermissions(tenant.getId());
+
+        return new org.springframework.security.core.userdetails.User(
+                tenant.getUsername(),
+                tenant.getPassword(),
+                enabled,
+                true,
+                true,
+                true,
+                getAuthorities(allPermissions));
+    }
+
+    /**
      * 从UserPermission中提取所有权限标识（controller_name:function_name）
      */
     private static Collection<? extends GrantedAuthority> getAuthorities(List<Permission> permissionList) {
@@ -236,11 +279,23 @@ public class SecurityConfig implements AuthenticationEntryPoint, AccessDeniedHan
     private String publicKey;
     @Value("${jwt.private-key}")
     private String privateKey;
+    @Value("${jwt.issuer:http://localhost:8080}")
+    private String issuer;
 
     // 用 RSA 公钥创建 JwtDecoder（自动验签）
     @Bean
     public JwtDecoder jwtDecoder(RSAPublicKey rsaPublicKey) {
-        return NimbusJwtDecoder.withPublicKey(rsaPublicKey).build();
+        NimbusJwtDecoder decoder = NimbusJwtDecoder
+                .withPublicKey(rsaPublicKey).build();
+
+        // 只验签名，不验时间戳（过期由 Redis 控制）
+        // 但仍可保留 issuer 校验
+        OAuth2TokenValidator<Jwt> validator = new DelegatingOAuth2TokenValidator<>(
+                new JwtIssuerValidator(issuer)  // 只验签发者
+                // 故意不加 JwtTimestampValidator
+        );
+        decoder.setJwtValidator(validator);
+        return decoder;
     }
 
     // 配置 JwtEncoder
@@ -250,7 +305,7 @@ public class SecurityConfig implements AuthenticationEntryPoint, AccessDeniedHan
             // 抛出明确的异常，提示公私钥不匹配
             throw new IllegalArgumentException("公私钥长度不匹配!");
         }
-        log.warn("✅ RSA 公私钥配对验证通过，模数长度：{} bit", rsaPublicKey.getModulus().bitLength());
+        log.info("✅ RSA 公私钥配对验证通过，模数长度：{} bit", rsaPublicKey.getModulus().bitLength());
         return NimbusJwtEncoder.withKeyPair(rsaPublicKey,rsaPrivateKey).build();
     }
 
@@ -273,13 +328,13 @@ public class SecurityConfig implements AuthenticationEntryPoint, AccessDeniedHan
                 throw new IllegalArgumentException("非法私钥!");
             }
         }catch (IllegalArgumentException | NoSuchAlgorithmException | InvalidKeySpecException e){
-            throw new IllegalArgumentException("非法私钥!");
+            throw new IllegalArgumentException("非法私钥!",e);
         }
     }
 
     // 解密使用 RSA 公钥（用于验签）
     @Bean
-    public RSAPublicKey rsaPublicKey() throws Exception {
+    public RSAPublicKey rsaPublicKey() {
         try {
             // 去掉 Base64 字符串中的换行和头尾（如果有的话）
             String cleanKey = publicKey
@@ -296,7 +351,7 @@ public class SecurityConfig implements AuthenticationEntryPoint, AccessDeniedHan
                 throw new IllegalArgumentException("非法公钥!");
             }
         }catch (IllegalArgumentException | NoSuchAlgorithmException | InvalidKeySpecException e){
-            throw new IllegalArgumentException("非法公钥!");
+            throw new IllegalArgumentException("非法公钥!",e);
         }
     }
 
@@ -308,18 +363,12 @@ public class SecurityConfig implements AuthenticationEntryPoint, AccessDeniedHan
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(jwt -> {
             // 1. 读取JWT中的authorities数组（每个元素是{"role":"xxx"}）
-            List<Map<String, String>> authObjects = jwt.getClaim("authorities");
+            List<String> authorities = jwt.getClaimAsStringList("authorities");
             // 2. 空值处理
-            if (authObjects == null || authObjects.isEmpty()) {
-                return Collections.emptyList();
-            }
-            // 3. 提取每个对象中的role字段值
-            List<String> authorityList = authObjects.stream()
-                    .map(authObj -> authObj.get("role")) // 关键：从role字段取值
-                    .filter(StringUtils::hasText) // 过滤空值
-                    .toList();
-            // 4. 转为Spring Security的权限对象
-            return authorityList.stream()
+            if (authorities == null) return Collections.emptyList();
+            // 3. 转为Spring Security的权限对象
+            return authorities.stream()
+                    .filter(StringUtils::hasText)
                     .map(SimpleGrantedAuthority::new)
                     .collect(Collectors.toList());
         });

@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 import me.chr.hex.core.log.Loggable;
 import me.chr.hex.extend.Enum.KnowledgeNodeTypeEnum;
-import me.chr.hex.general.entity.User;
+import me.chr.hex.general.entity.SysUser;
 
 import java.util.UUID;
 
@@ -40,12 +40,13 @@ public class UserDTO implements Loggable {
     @Schema(description = "密码（加密存储，如BCrypt）")
     private String password;
 
-    public User ToUser(String encryptedPassword,String parentId){
-        User user=new User();
+    public SysUser ToUser(String encryptedPassword, String creatorId, String tenantId){
+        SysUser user=new SysUser();
         user.setId(UUID.randomUUID().toString());
         user.setUsername(this.username);
         user.setPassword(encryptedPassword);
-        user.setParentId(parentId);
+        user.setTenantId(tenantId);
+        user.setCreatorId(creatorId);
         return user;
     }
 

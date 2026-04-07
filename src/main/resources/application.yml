@@ -1,3 +1,8 @@
+# 租户配置
+tenant:
+  username: hex
+  password: hex
+
 server:
   port: 8080
   servlet:
@@ -61,13 +66,13 @@ spring:
   datasource:
     # PostgreSQL驱动类（Spring Boot 3推荐用这个新版驱动类名）
     driver-class-name: org.postgresql.Driver
-    # JDBC连接地址：localhost:5432是容器端口，knowledge_base是数据库名
+    # JDBC连接地址：localhost:5432是容器端口，hex 是数据库名
     # 关键参数说明：
     # - useSSL=false：开发环境关闭SSL（生产环境建议开启）
     # - serverTimezone=Asia/Shanghai：时区对齐，避免时间字段错误
     # - allowPublicKeyRetrieval=true：兼容PostgreSQL的公钥检索
     # - stringtype=unspecified：解决PostgreSQL的字符串类型适配问题
-    url: jdbc:postgresql://192.168.1.42:5432/knowledge_base?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&stringtype=unspecified
+    url: jdbc:postgresql://192.168.1.42:5432/hex?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&stringtype=unspecified
     # 数据库账号（对应docker-compose中的POSTGRES_USER）
     username: admin
     # 数据库密码（对应docker-compose中的POSTGRES_PASSWORD）
@@ -156,5 +161,3 @@ jwt:
   public-key: MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAx96+XYuIuHqNIFNODOK6xziSocPrewApJh7ycZns7tDvIEAhpfrGeGKXR42XezPNPRUaGp8w/+K6mUMBWxjrJgBAKziFK82Ea85fkxTaVTmvNAMRJQFWK//iJZRJz4600SlTypPdtWUtRUBFNj1V57fOoPm5AUz8Z87FfAh3FCNdV3vQ32V4XLfDmyXqtSWhxm8eDcx/mSajtXKYM/KG9xvJW0SX1vDCkmSKQK4+oLtGisG8L+GZNbr9bADrpIba3v4hXWr8U2mGg3d1x9M+jhoJT1xVhTPQvL37AdeBEpfD5WiaaXoIXCa55H2g7r/T/XP2CYTaRBRiyknW4ccImwIDAQAB
   # 签发者
   issuer: http://localhost:8080
-  # Token 过期时间（秒）
-  expiration: 7200

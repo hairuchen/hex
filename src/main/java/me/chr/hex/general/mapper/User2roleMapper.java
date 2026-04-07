@@ -7,11 +7,11 @@ import org.apache.ibatis.annotations.Mapper;
 
 /**
  * <p>
- * 用户与角色的分配关系表 Mapper 接口
+ *  Mapper 接口
  * </p>
  *
  * @author baomidou
- * @since 2026-03-12
+ * @since 2026-04-11
  */
 @Mapper
 public interface User2roleMapper extends BaseMapper<User2role> {

@@ -84,7 +84,7 @@ services:
     environment:
       POSTGRES_USER: admin       # 数据库管理员账号
       POSTGRES_PASSWORD: admin123456  # 密码（生产环境需强密码）
-      POSTGRES_DB: knowledge_base   # 自动创建的默认数据库（知识库专用）
+      POSTGRES_DB: hex              # 指定数据库
       TZ: Asia/Shanghai             # 时区配置，避免时间戳错误
     volumes:
       - ./postgres/data:/var/lib/postgresql/data  # 数据持久化
